@@ -5,6 +5,7 @@
 \usepackage{array}
 \usepackage{multirow}
 \usepackage{graphicx}
+\usepackage{svg}
 \usepackage[hidelinks]{hyperref}
 \usepackage[nameinlink,capitalize]{cleveref}
 \usepackage[numbers,sort&compress]{natbib}
@@ -50,7 +51,9 @@ or approximations. In this paper we show that an exact Bayesian posterior predic
 together with a simple recursive algorithm for simulating from the full predictive distribution using only standard distributions, which can be used for calculating risk measures such as VaR and TVaR.
 The exact solution is fast, robust and straightforward to implement. 
 
-With a hierarchical prior on the origin period parameters, the model allows pooling of information across origin periods, and gives a simple one-parameter family of estimators which bridges between the data-driven Chain Ladder estimator and the exposure-based Cape Cod estimator. The strong-prior limit yields Cape Cod, the weak-prior limit yields the Chain Ladder, and intermediate prior strength yields a continuum of credibility-weighted methods.
+We next introduce a one-parameter family of prior distributions which shrink the origin-period parameters toward an exposure-based index. We show that
+in the strong-prior limit, the model recovers the Cape Cod model, while in the weak-prior limit it recovers the Chain Ladder model. Intermediate prior strength yields a continuum of credibility-weighted estimators between these two endpoints. 
+With a hierarchical prior on the origin period parameters, we show how the blending parameter may itself be estimated from the data. 
 \end{abstract}
 
 
@@ -111,7 +114,7 @@ X_{ij}\mid \mu,\beta \sim \phi\,\mathrm{Poi}\!\left(\frac{\mu_i\beta_j}{\phi}\ri
 \label{eq:odp_model}
 \end{equation}
 with conditional independence over observed cells. Here $\phi>0$ is treated as known, as in \citet{EnglandVerrall2006} and \citet{Norman2025ODP}. We keep $\phi$ constant purely for pedagogical clarity of exposition. As discussed in \citet{EnglandVerrall2006} and 
-\citet{Saluz2015CapeCod}, the assumption constant scale parameter may not be appropriate in all cases and should be checked. In many cases a scale parameter which varies across development periods is more appropriate. Our results can be extended to that setting, 
+\citet{Saluz2015CapeCod}, the assumption of a constant scale parameter may not be appropriate in all cases and should be checked. In many cases a scale parameter which varies across development periods is more appropriate. Our results can be extended to that setting, 
 but the constant scale case is sufficient to illustrate the key ideas. A standard limitation of the ODP framework should also be noted: since the cell means must be non-negative, the model is not naturally suited to triangles with material negative 
 incremental entries, for example from heavy salvage and subrogation. 
 
@@ -162,6 +165,7 @@ Consequently, under the non-informative logarithmic prior
 \pi(\beta)\propto \prod_{j=1}^{n}\beta_j^{-1},
 \label{eq:beta_log_prior}
 \end{equation}
+see \citet{Wuthrich2013} for related discussion of non-informative prior choices in Bayesian ODP reserving models.
 we have, conditional on $\mu$ and the observed triangle,
 \begin{equation}
 \beta_j\mid X,\mu \sim \GammaD\!\left(c_j,\frac{1}{\phi}\sum_{r=1}^{n-j+1} \mu_r\right),
@@ -205,17 +209,17 @@ A convenient and tractable prior family on the origin index is
 \qquad \mu_i>0,
 \label{eq:igd_mu_prior}
 \end{equation}
-for parameters $a_i>0$ and $b_i>0$, $i=2,\dots,n$, where $B(x,y)=\Gamma(x)\Gamma(y)/\Gamma(x+y)$ is the Beta function. We refer to \eqref{eq:igd_mu_prior} as a generalised inverse-Dirichlet prior \citet{}. The generlalised inverse-Dirichlet family is a natural extension of the generalised Dirichlet distribution 
-\citep{Moschopoulos2010InverseDirichlet} to the case where the components are not constrained to sum to one. The means and covariances of the $\mu_i$ under \eqref{eq:igd_mu_prior} are for $i\ge 2$,
+for parameters $a_i>0$ and $b_i>0$, $i=2,\dots,n$, where $B(x,y)=\Gamma(x)\Gamma(y)/\Gamma(x+y)$ is the Beta function. We refer to \eqref{eq:igd_mu_prior} as a generalised inverse-Dirichlet prior \citep{Lingappaiah1976}. The generalised inverse-Dirichlet family is a natural extension of the generalised Dirichlet distribution to the case where the components are not constrained to sum to one \citep{Lingappaiah1976}. The means and covariances of the $\mu_i$ under \eqref{eq:igd_mu_prior} are for $i\ge 2$,
 
-\[
+\begin{equation}
 \mathbb{E}[\mu_i]
 =
 \frac{b_i}{a_i-1}
 \prod_{k=2}^{i-1}
 \frac{a_k+b_k-1}{a_k-1},
 \qquad a_k>1 \ \text{for } k=2,\dots,i,
-\]
+\label{eq:mu_mean}
+\end{equation}
 and for $2\le i<j\le n$,
 \[
 \mathbb{E}[\mu_i\mu_j]
@@ -233,15 +237,16 @@ and for $2\le i<j\le n$,
 \]
 provided $a_k>2$ for $k=2,\dots,i$ and $a_k>1$ for $k=i+1,\dots,j$.
 Therefore
-\[
+\begin{equation}
 \mathrm{Cov}(\mu_i,\mu_j)
 =
 \mathbb{E}[\mu_i\mu_j]-\mathbb{E}[\mu_i]\mathbb{E}[\mu_j].
-\]
-By symmetry,
-\[
-\mathrm{Cov}(\mu_i,\mu_j)=\mathrm{Cov}(\mu_j,\mu_i).
-\]
+\label{eq:mu_cov}
+\end{equation}
+
+Using equations \eqref{eq:mu_mean} and \eqref{eq:mu_cov}, 
+one can calibrate the parameters $a_i$ and $b_i$ to match desired prior means and 
+variances for the origin index $\mu$.
 
 A property of the generalised inverse-Dirichlet family is that the prior density factorises into a product of independent beta densities after a convenient change of coordinates. This is the key to the exact conjugacy and tractability of the model.
 Setting
@@ -311,44 +316,413 @@ Under the logarithmic development prior \eqref{eq:beta_log_prior}, integrating o
 p(\xi\mid X)
 \propto
 \pi_\xi(\xi)
-\prod_{i=2}^{n} \xi_i^{s_i+1}(1-\xi_i)^{d_i},
+\prod_{i=2}^{n} \xi_i^{s_i}(1-\xi_i)^{d_i},
 \label{eq:xi_kernel_general}
 \end{equation}
 where $\pi_\xi$ denotes the prior density induced on the transformed coordinates. In particular, the family \eqref{eq:igd_mu_prior} is precisely the class of origin-side priors for which \eqref{eq:xi_kernel_general} factorises into independent beta terms.
 
 \section{Exact predictive distribution and reserve uncertainty}\label{sec:predictive}
 
-This section derives the exact posterior predictive distribution and reserve-uncertainty formulas under the logarithmic development prior \eqref{eq:beta_log_prior}. In keeping with the fully Bayesian perspective, the formulas are stated only in terms of the observed data and posterior laws, without conditioning on unknown model parameters. This is the exact origin-side analogue of the logarithmic noninformative choice that recovers the classical estimators in the development-side formulation \citep{Norman2025ODP}.
-\subsection{A hierarchical origin-side prior centred on a benchmark origin index}\label{subsec:hier_prior}
+This section derives the exact posterior predictive distribution and 
+reserve-uncertainty formulas under the logarithmic development prior \eqref{eq:beta_log_prior} and the generalised inverse-Dirichlet origin prior \eqref{eq:igd_mu_prior}.
 
-We now specialise the generalised inverse-Dirichlet family to a one-parameter benchmark-centred hierarchy. Let
-\begin{equation}
-\mu_1^0=1,\qquad \mu_i^0>0,\qquad i=2,\dots,n,
-\label{eq:mu0_general}
-\end{equation}
-be a benchmark origin index. This index represents prior views about the expected origin-year strength.
-Define
-\begin{equation}
-\xi_i^0:=\frac{\sum_{j=1}^{i-1} \mu_j^0}{\sum_{j=1}^i \mu_j^0},
+
+\subsection{General posterior under independent beta priors on the transformed origin coordinates}
+
+By \Cref{prop:igd_beta_equiv}, the prior \eqref{eq:igd_mu_prior} is equivalent to the independent beta specification
+\[
+\xi_i \stackrel{\mathrm{ind}}{\sim} \BetaD(a_i,b_i),
 \qquad i=2,\dots,n.
-\label{eq:xi0_general}
-\end{equation}
-These are simply the transformed coordinates corresponding to the benchmark index $\mu^0$. For large $\tau$, 
-the prior is concentrated around the benchmark values, reflecting strong prior beliefs.
+\]
+Combining this with the kernel \eqref{eq:xi_kernel_general} gives an exact conjugate posterior.
 
-A particularly convenient one-parameter subfamily is obtained by introducing a shrinkage strength $\tau>0$ and setting
+\begin{theorem}\label{thm:xi_posterior_general}
+Under \eqref{eq:beta_log_prior} and \eqref{eq:igd_mu_prior},
 \begin{equation}
-\xi_i\mid\tau
-\sim
-\BetaD\!\left(\tau\xi_i^0,\tau(1-\xi_i^0)\right),
+\xi_i\mid X \stackrel{\mathrm{ind}}{\sim}
+\BetaD\!\bigl(a_i+s_i,\,b_i+d_i\bigr),
 \qquad i=2,\dots,n.
-\label{eq:xi_prior_tau}
+\label{eq:xi_posterior_general}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Multiply the beta prior density in the $\xi$ coordinates by the kernel \eqref{eq:xi_kernel_general} and collect powers of $\xi_i$ and $(1-\xi_i)$.
+\end{proof}
+
+The posterior inverse moments needed for reserving are therefore
+\begin{equation}
+\E\!\left[\frac{1-\xi_i}{\xi_i}\,\middle|\,X\right]
+=
+\frac{b_i+d_i}{a_i+s_i-1},
+\qquad
+\E\!\left[\xi_i^{-1}\,\middle|\,X\right]
+=
+\frac{a_i+b_i+s_i+d_i-1}{a_i+s_i-1},
+\label{eq:inverse_moments_xi_general}
+\end{equation}
+and, when the moments exist,
+\begin{equation}
+\E\!\left[\left(\frac{1-\xi_i}{\xi_i}\right)^2\,\middle|\,X\right]
+=
+\frac{(b_i+d_i)(b_i+d_i+1)}{(a_i+s_i-1)(a_i+s_i-2)},
+\end{equation}
+\begin{equation}
+\E\!\left[\xi_i^{-2}\,\middle|\,X\right]
+=
+\frac{(a_i+b_i+s_i+d_i-1)(a_i+b_i+s_i+d_i-2)}{(a_i+s_i-1)(a_i+s_i-2)}.
+\label{eq:inverse_second_moments_xi_general}
 \end{equation}
 
-Combining \eqref{eq:xi_kernel_general} and \eqref{eq:xi_prior_tau} yields the exact conjugate posterior for fixed $\tau$.
+\subsection{Posterior predictive simulation under the general prior}\label{sec:predictive_simulation_general}
 
-\begin{theorem}\label{thm:xi_posterior_tau}
-Under \eqref{eq:beta_log_prior} and \eqref{eq:xi_prior_tau},
+For development period $j$, the future cells are those with $i=n-j+2,\dots,n$.
+Conditional on $X$ and $\xi$, the development parameters remain independent with
+\begin{equation}
+\beta_j\mid X,\xi \sim \GammaD\!\left(c_j,\frac{1}{\phi}\sum_{r=1}^{n-j+1} \mu_r\right),
+\qquad j=1,\dots,n,
+\label{eq:beta_post_log_predictive}
+\end{equation}
+by \eqref{eq:beta_post_conditional}.
+Hence future payments may be simulated exactly as follows:
+\begin{enumerate}[leftmargin=2em]
+\item For $i=2,\dots,n$, sample $\xi_i$ independently from \eqref{eq:xi_posterior_general}.
+\item Recover $\mu_i$ from $\xi$ using \eqref{eq:M_mu_from_xi}.
+\item For $j=1,\dots,n-1$, sample $\beta_j$ independently from \eqref{eq:beta_post_log_predictive}.
+\item For each future cell $(i,j)$ with $i+j>n+1$, sample
+\[
+X_{ij}^{\mathrm{fut}}\mid X,\mu,\beta \sim \phi\,\mathrm{Poi}\!\left(\frac{\mu_i\beta_j}{\phi}\right).
+\]
+\end{enumerate}
+This representation uses only independent beta draws, independent gamma draws, and conditionally independent scaled Poisson draws. For the final forecasting step, 
+one may prefer to replace the scaled Poisson draw with  $X_{ij}^{\mathrm{fut}}\mid X,\mu,\beta \sim \phi\,\GammaD\!\left(\frac{\mu_i\beta_j}{\phi},1\right).$ which has the same mean and variance
+but avoids the discreteness inherent in the Poisson distribution.
+
+
+\subsection{Reserve mean under the general prior}
+
+For a future cell $(i,j)$ with $i+j>n+1$, define
+\begin{equation}
+W_{ij}
+:= \frac{\mu_i}{\sum_{r=1}^{n-j+1} \mu_r}
+= \frac{1-\xi_i}{\xi_i}\prod_{k=n-j+2}^{i-1}\xi_k^{-1}.
+\label{eq:W_ij}
+\end{equation}
+Then $\E[X_{ij}\mid X,\xi]=C_jW_{ij}$, since $\E[\beta_j\mid X,\xi]=C_j/\sum_{r=1}^{n-j+1}\mu_r$.
+
+\begin{proposition}\label{prop:first_moment_general}
+For a future cell $(i,j)$, define
+\begin{equation}
+m_{ij}:=\E[W_{ij}\mid X].
+\label{eq:first_moment_mij_general_name}
+\end{equation}
+Then
+\begin{equation}
+m_{ij}
+=
+\frac{b_i+d_i}{a_i+s_i-1}
+\prod_{k=n-j+2}^{i-1}
+\frac{a_k+b_k+s_k+d_k-1}{a_k+s_k-1},
+\label{eq:first_moment_mij_general}
+\end{equation}
+provided the displayed expectations exist.
+\end{proposition}
+
+\begin{proof}
+Use \eqref{eq:inverse_moments_xi_general} together with independence of the $\xi_k$.
+\end{proof}
+
+Hence the posterior mean reserve for origin period $i$ is
+\begin{equation}
+\widehat{R}_i
+:= \E\!\left[\sum_{j=n-i+2}^{n} X_{ij}\,\middle|\,X\right]
+= \sum_{j=n-i+2}^{n} C_j m_{ij},
+\label{eq:row_reserve_mean_general}
+\end{equation}
+and the total reserve mean is
+\begin{equation}
+\widehat{R}
+:= \E[T\mid X]
+= \sum_{i+j>n+1} C_j m_{ij},
+\qquad
+T:=\sum_{i+j>n+1}X_{ij}.
+\label{eq:total_reserve_mean_general}
+\end{equation}
+
+\subsection{Reserve variances and covariances under the general prior}
+
+For a future cell, define
+\begin{equation}
+m^{(2)}_{ij}:=\E[W_{ij}^2\mid X].
+\label{eq:second_moment_name_general}
+\end{equation}
+Then
+\begin{equation}
+m^{(2)}_{ij}
+=
+\frac{(b_i+d_i)(b_i+d_i+1)}{(a_i+s_i-1)(a_i+s_i-2)}
+\prod_{k=n-j+2}^{i-1}
+\frac{(a_k+b_k+s_k+d_k-1)(a_k+b_k+s_k+d_k-2)}{(a_k+s_k-1)(a_k+s_k-2)}.
+\label{eq:second_moment_mij_general}
+\end{equation}
+
+For mixed moments, define for any finite set $\mathcal S$ of future cells the exponents $a_k(\mathcal S)$ and $b_k(\mathcal S)$ by
+\begin{equation}
+\prod_{(i,j)\in\mathcal S} W_{ij}
+=
+\prod_{k=2}^{n} \xi_k^{-a_k(\mathcal S)} (1-\xi_k)^{b_k(\mathcal S)}.
+\label{eq:generic_exponents}
+\end{equation}
+Then
+\begin{equation}
+\E\!\left[\prod_{(i,j)\in\mathcal S} W_{ij}\,\middle|\,X\right]
+=
+\prod_{k=2}^{n}
+\frac{B\bigl(a_k+s_k-a_k(\mathcal S),\,b_k+d_k+b_k(\mathcal S)\bigr)}{B\bigl(a_k+s_k,\,b_k+d_k\bigr)},
+\label{eq:generic_mixed_moment_general}
+\end{equation}
+provided the moments exist. In particular, for two future cells $(i,j)$ and $(\ell,h)$, define
+\begin{equation}
+q_{ij,\ell h}:=\E[W_{ij}W_{\ell h}\mid X].
+\label{eq:q_mixed_general}
+\end{equation}
+
+\begin{proposition}\label{prop:var_cov_cells_general}
+For each future cell $(i,j)$,
+\begin{equation}
+\Var(X_{ij}\mid X)
+=
+\phi C_j m_{ij}
++
+\phi C_j m^{(2)}_{ij}
++
+C_j^2\bigl(m^{(2)}_{ij}-m_{ij}^2\bigr).
+\label{eq:var_cell_general}
+\end{equation}
+For two distinct future cells,
+\begin{align}
+\Cov(X_{ij},X_{\ell j}\mid X)
+&=
+\phi C_j q_{ij,\ell j}
++
+C_j^2\bigl(q_{ij,\ell j}-m_{ij}m_{\ell j}\bigr),
+\qquad i\neq \ell,
+\label{eq:cov_same_col_general}\\
+\Cov(X_{ij},X_{\ell h}\mid X)
+&=
+C_j C_h\bigl(q_{ij,\ell h}-m_{ij}m_{\ell h}\bigr),
+\qquad j\neq h.
+\label{eq:cov_diff_col_general}
+\end{align}
+\end{proposition}
+
+\begin{proof}
+Conditional on $\xi$, the development periods are independent, $\E[X_{ij}\mid X,\xi]=C_jW_{ij}$, and
+\[
+\Var(X_{ij}\mid X,\xi)=\phi C_jW_{ij}+\phi C_jW_{ij}^2.
+\]
+The same-column covariance given $\xi$ is
+\[
+\Cov(X_{ij},X_{\ell j}\mid X,\xi)=\phi C_jW_{ij}W_{\ell j},
+\qquad i\neq \ell,
+\]
+while different development periods are conditionally independent. Applying the law of total variance and the law of total covariance then gives the result.
+\end{proof}
+
+
+\subsection{Reserve variances and covariances under the general prior}
+\label{sec:reserve_variances}
+
+To calculate reserve variances efficiently without relying on individual pairwise cell covariances, it is helpful to exploit the independence of the posterior beta coordinates and the telescoping structure of \eqref{eq:W_ij}. For $k=2,\dots,n$, define the posterior inverse moments
+\begin{equation}
+v_k:=\E[\xi_k^{-1}\mid X]
+=\frac{a_k+b_k+s_k+d_k-1}{a_k+s_k-1}
+\label{eq:v_k_general}
+\end{equation}
+and
+\begin{equation}
+v_k^{(2)}:=\E[\xi_k^{-2}\mid X]
+=\frac{(a_k+b_k+s_k+d_k-1)(a_k+b_k+s_k+d_k-2)}{(a_k+s_k-1)(a_k+s_k-2)}.
+\label{eq:v_k2_general}
+\end{equation}
+Then the first and second moments of the future-cell weights can be written as
+\begin{equation}
+m_{ij}
+=
+\left(\frac{b_i+d_i}{a_i+s_i-1}\right)
+\prod_{k=n-j+2}^{i-1} v_k
+\label{eq:mij_vk}
+\end{equation}
+and
+\begin{equation}
+m_{ij}^{(2)}
+=
+\left(\frac{(b_i+d_i)(b_i+d_i+1)}{(a_i+s_i-1)(a_i+s_i-2)}\right)
+\prod_{k=n-j+2}^{i-1} v_k^{(2)}.
+\label{eq:mij2_vk}
+\end{equation}
+
+By applying the law of total variance conditional on $\xi$, the variances of the origin-period reserves and the total reserve collapse into sums over future development periods.
+
+\begin{proposition}[Origin-period reserve variance]\label{prop:origin_period_variance_general}
+For a given origin period $i$, let
+\begin{equation}
+T_i^{\mathrm{fut}}:=\sum_{j=n-i+2}^{n} X_{ij}.
+\end{equation}
+Then
+\begin{equation}
+\Var(T_i^{\mathrm{fut}}\mid X)
+=
+\sum_{j=n-i+2}^{n}\phi C_j\bigl(m_{ij}+m_{ij}^{(2)}\bigr)
++
+\sum_{j=n-i+2}^{n}\sum_{h=n-i+2}^{n} C_jC_h\Sigma_{jh}^{(i)},
+\label{eq:origin_period_variance_general}
+\end{equation}
+where, for $j\le h$,
+\begin{equation}
+\Sigma_{jh}^{(i)}
+:=
+m_{ih}\left(\frac{m_{ij}^{(2)}}{m_{ij}}-m_{ij}\right).
+\label{eq:sigma_jh_i_general}
+\end{equation}
+By symmetry, $\Sigma_{jh}^{(i)}=\Sigma_{hj}^{(i)}$ for $j>h$.
+\end{proposition}
+
+\begin{proof}
+Conditional on $\xi$, the cells $X_{ij}$ in row $i$ are independent because they depend on independent development parameters $\beta_j$. Hence
+\begin{equation}
+\Var(T_i^{\mathrm{fut}}\mid X)
+=
+\E\bigl[\Var(T_i^{\mathrm{fut}}\mid X,\xi)\mid X\bigr]
++
+\Var\bigl(\E[T_i^{\mathrm{fut}}\mid X,\xi]\mid X\bigr).
+\end{equation}
+The conditional process-variance term gives the first sum in \eqref{eq:origin_period_variance_general}. For the second term, if $j\le h$ then
+\begin{equation}
+W_{ih}
+=
+W_{ij}\prod_{k=n-h+2}^{n-j+1}\xi_k^{-1},
+\end{equation}
+and the extra product is independent of $W_{ij}$. Therefore
+\begin{equation}
+\E[W_{ij}W_{ih}\mid X]
+=
+m_{ij}^{(2)}\frac{m_{ih}}{m_{ij}},
+\end{equation}
+which yields \eqref{eq:sigma_jh_i_general} after subtracting $m_{ij}m_{ih}$.
+\end{proof}
+
+For the total reserve variance, the same telescoping structure leads to an even simpler column-based representation.
+
+\begin{proposition}[Total reserve mean and variance]\label{prop:total_reserve_variance_general_compact}
+For $j=2,\dots,n$, define
+\begin{equation}
+\Pi_j:=\prod_{k=n-j+2}^{n} v_k,
+\qquad
+\Pi_j^{(2)}:=\prod_{k=n-j+2}^{n} v_k^{(2)}.
+\label{eq:Pi_j_general}
+\end{equation}
+Then the total reserve
+\begin{equation}
+T:=\sum_{i+j>n+1} X_{ij}
+\end{equation}
+has posterior predictive mean
+\begin{equation}
+\E[T\mid X]=\sum_{j=2}^{n} C_j\bigl(\Pi_j-1\bigr)
+\label{eq:total_reserve_mean_compact_general}
+\end{equation}
+and posterior predictive variance
+\begin{equation}
+\Var(T\mid X)
+=
+\sum_{j=2}^{n}\phi C_j\bigl(\Pi_j^{(2)}-\Pi_j\bigr)
++
+\sum_{j=2}^{n}\sum_{h=2}^{n} C_jC_h\Omega_{jh},
+\label{eq:total_reserve_variance_compact_general}
+\end{equation}
+where, for $j\le h$,
+\begin{equation}
+\Omega_{jh}
+:=
+\Pi_h\left(\frac{\Pi_j^{(2)}}{\Pi_j}-\Pi_j\right).
+\label{eq:Omega_jh_general}
+\end{equation}
+By symmetry, $\Omega_{jh}=\Omega_{hj}$ for $j>h$.
+\end{proposition}
+
+\begin{proof}
+Let
+\begin{equation}
+S_j:=\sum_{i=n-j+2}^{n} W_{ij}
+\end{equation}
+denote the future proportion of development period $j$. Substituting \eqref{eq:mu_from_xi_again} into \eqref{eq:W_ij}, the sum telescopes to
+\begin{equation}
+S_j=\left(\prod_{k=n-j+2}^{n}\xi_k^{-1}\right)-1.
+\label{eq:Sj_telescoped_general}
+\end{equation}
+Hence, with
+\begin{equation}
+P_j:=S_j+1=\prod_{k=n-j+2}^{n}\xi_k^{-1},
+\end{equation}
+we have $\E[P_j\mid X]=\Pi_j$ and $\E[P_j^2\mid X]=\Pi_j^{(2)}$. Since
+\begin{equation}
+\E[T\mid X,\xi]=\sum_{j=2}^{n} C_j S_j,
+\end{equation}
+\eqref{eq:total_reserve_mean_compact_general} follows immediately. Also, conditional on $\xi$, the future total in development period $j$ has variance
+\begin{equation}
+\phi C_j\bigl(S_j+S_j^2\bigr),
+\end{equation}
+so taking expectations gives the first sum in \eqref{eq:total_reserve_variance_compact_general}. For the covariance term, if $j\le h$ then
+\begin{equation}
+P_h=P_j\prod_{k=n-h+2}^{n-j+1}\xi_k^{-1},
+\end{equation}
+with the extra product independent of $P_j$, so
+\begin{equation}
+\E[P_jP_h\mid X]=\Pi_h\frac{\Pi_j^{(2)}}{\Pi_j}.
+\end{equation}
+Subtracting $\E[P_j\mid X]\E[P_h\mid X]=\Pi_j\Pi_h$ gives \eqref{eq:Omega_jh_general}. Applying the law of total variance yields \eqref{eq:total_reserve_variance_compact_general}.
+\end{proof}
+
+\section{An exposure-centred one-parameter family and its classical limits}\label{sec:hierarchical}
+
+The previous sections derived the exact predictive distribution under a generalised inverse Dirichlet origin-side prior. We now specialise that prior to a
+prior where the expected claims by origin period 
+are proportional to the exposure. A single concentration parameter then controls how tightly the prior is concentrated 
+around the exposure.
+
+We will show that in the weak-prior limit - that is, when the prior variance goes to infinity, the model recovers the Chain Ladder. The strong-prior limit in which the prior expected claims are exactly proportional to the 
+exposure recovers Cape Cod. Thus the family provides a continuous interpolation between these two classical methods, with the concentration parameter controlling the strength of the credibility effect. 
+The family is also convenient for practical use, since it has only one additional prior parameter to calibrate. The concentration parameter can be estimated from the data through maximum marginal likelihood. 
+Introducing a hyperprior on the concentration parameter then gives a fully Bayesian model for the concentration parameter.
+
+\subsection{The exposure-centred one-parameter prior family}\label{subsec:hier_prior}
+
+Define the relative exposure index by
+\begin{equation}
+e_i:=\frac{E_i}{E_1},
+\qquad i=1,\dots,n,
+\qquad e_1=1.
+\label{eq:relative_exposure_def}
+\end{equation}
+For $\tau\ge0$, define the prior on the origin-period parameters by the generalised inverse-Dirichlet family (\ref{eq:igd_mu_prior}) with 
+parameters given by 
+\begin{equation}
+a_i=1+\tau\sum_{r=1}^{i-1}e_r,
+\qquad
+b_i=\tau e_i.
+\label{eq:a_b_tau}
+\end{equation}
+This family has the appealing property that the prior mean of $\mu_i$ is proportional to the exposure $E_i$. From (\ref{eq:mu_mean}), 
+\begin{equation}
+\E[\mu_i\mid\tau]=e_i=\frac{E_i}{E_1},
+\qquad i=2,\dots,n.
+\label{eq:mu_mean_tau}
+\end{equation}
+The parameter $\tau$ controls how strongly the prior is concentrated around the exposure. Smaller $\tau$ corresponds to a 
+weaker prior, while larger $\tau$ corresponds to a stronger prior. We will see that the weak prior limit $\tau\downarrow0$ leads to the Chain Ladder endpoint; the strong prior limit $\tau\to\infty$ is the Cape Cod endpoint.
+A construction that gives rise to this prior using independent gamma prior loss ratios is given in \Cref{app:gamma_loss_ratio_prior}.
+
+Under \eqref{eq:xi_posterior_general} and \eqref{eq:a_b_tau},
 \begin{equation}
 \xi_i\mid X,\tau \stackrel{\mathrm{ind}}{\sim}
 \BetaD\!\bigl(u_i(\tau),v_i(\tau)\bigr),
@@ -357,264 +731,287 @@ Under \eqref{eq:beta_log_prior} and \eqref{eq:xi_prior_tau},
 \end{equation}
 with
 \begin{equation}
-u_i(\tau):=1+s_i+\tau\xi_i^0,
+u_i(\tau):=1+s_i+\tau\sum_{r=1}^{i-1}e_r,
 \qquad
-v_i(\tau):=d_i+\tau(1-\xi_i^0).
+v_i(\tau):=d_i+\tau e_i.
 \label{eq:u_v_tau}
 \end{equation}
-\end{theorem}
 
-\begin{proof}
-Multiplying the beta prior \eqref{eq:xi_prior_tau} by the kernel \eqref{eq:xi_kernel_general} gives the exponent $u_i(\tau)-1$ on $\xi_i$ and the exponent $v_i(\tau)-1$ on $(1-\xi_i)$. Independence follows immediately.
-\end{proof}
-
-If one now places a hyperprior $\pi(\tau)$ on the shrinkage strength, then
-\begin{equation}
-p(\tau\mid X)
-\propto
-\pi(\tau)
-\prod_{i=2}^{n}
-\frac{B\bigl(u_i(\tau),v_i(\tau)\bigr)}{B\bigl(\tau \xi_i^0,\tau(1-\xi_i^0)\bigr)}.
-\label{eq:tau_posterior}
-\end{equation}
-This is the key hierarchical step. The benchmark relativity index supplies the prior centre, while the data determine the credibility weight through the posterior of $\tau$. That is the mechanism by which the model moves continuously between the data-driven Chain Ladder endpoint and the exposure-centred Cape Cod endpoint.
-
-\begin{remark}
-The posterior mean of each transformed coordinate is
+The credibility effect is explicit. The posterior mean of each transformed coordinate is
 \begin{equation}
 \E[\xi_i\mid X,\tau]
 =
-\frac{1+s_i+\tau \xi_i^0}{1+s_i+d_i+\tau}.
-\label{eq:xi_mean_tau}
-\end{equation}
-More importantly for reserving, the inverse moments that drive the reserve formulas are
-\begin{equation}
-\E\!\left[\frac{1-\xi_i}{\xi_i}\,\middle|\,X,\tau\right]
+\frac{1+s_i+\tau\sum_{r=1}^{i-1}e_r}{1+s_i+d_i+\tau\sum_{r=1}^{i}e_r}
 =
-\frac{d_i+\tau(1-\xi_i^0)}{s_i+\tau \xi_i^0},
+z_i(\tau)\,\xi_i^0+\bigl(1-z_i(\tau)\bigr)\widehat\xi_i^{\mathrm{CL}},
+\label{eq:credibility_xi_mean}
+\end{equation}
+where
+\begin{equation}
+\widehat\xi_i^{\mathrm{CL}}:=\frac{1+s_i}{1+s_i+d_i},
 \qquad
+z_i(\tau):=\frac{\tau\sum_{r=1}^{i}e_r}{1+s_i+d_i+\tau\sum_{r=1}^{i}e_r}.
+\label{eq:zi_tau}
+\end{equation}
+Likewise,
+\begin{equation}
 \E\!\left[\xi_i^{-1}\,\middle|\,X,\tau\right]
 =
-\frac{s_i+d_i+\tau}{s_i+\tau \xi_i^0}.
-\label{eq:inverse_moments_xi}
+\frac{s_i+d_i+\tau\sum_{r=1}^{i}e_r}{s_i+\tau\sum_{r=1}^{i-1}e_r}
+=
+w_i(\tau)\,\frac{s_i+d_i}{s_i}+\bigl(1-w_i(\tau)\bigr)\frac{1}{\xi_i^0},
+\label{eq:credibility_inverse2}
 \end{equation}
-These identities make the credibility bridge between the data-driven endpoint and the benchmark relativity index completely explicit.
-\end{remark}
-
-\subsection{Posterior predictive building blocks}
-
-For development period $j$, the future cells are those with $i=n-j+2,\dots,n$.
-
-Conditional on $X$ and $\tau$, the posterior is described by two simple ingredients:
-\begin{enumerate}[leftmargin=2em]
-\item independent beta variables $\xi_i\mid X,\tau$ from \eqref{eq:xi_posterior_tau};
-\item conditional on $\xi$, independent gamma variables
+with
 \begin{equation}
-\beta_j\mid X,\xi \sim \GammaD\!\left(c_j,\frac{1}{\phi}\sum_{r=1}^{n-j+1} \mu_r\right),
-\qquad j=1,\dots,n,
-\label{eq:beta_post_log}
+w_i(\tau):=\frac{s_i}{s_i+\tau\sum_{r=1}^{i-1}e_r}.
+\label{eq:wi_tau}
 \end{equation}
-by \eqref{eq:beta_post_conditional}.
-\end{enumerate}
-Since the future counts in development period $j$ are conditionally Poisson given $(\mu,\beta_j)$, integrating out $\beta_j$ gives the following exact predictive law.
 
-This theorem gives the fully Bayesian predictive distribution recursively:
-\begin{enumerate}[leftmargin=2em]
-\item Sample $\tau$ from the hyperparameter posterior $p(\tau\mid X)$.
-\item For $i=2,\dots,n$, sample $\xi_i$ independently from the beta posterior $\BetaD\!\bigl(u_i(\tau),v_i(\tau)\bigr)$.
-\item Compute $\mu_i$ from $\xi$ using \eqref{eq:M_mu_from_xi}. 
-\item For $j=1,\dots,n-1$, sample $\beta_j$ independently from the gamma posterior \eqref{eq:beta_post_log}.
-\item For $j=1,\dots,n-1$
-\begin{enumerate}[leftmargin=2em]
-\item For i=1,\dots,n, compute the cell means $\mu_i\beta_j/\phi$.
-\item Sample the total scaled future claims $x_{ij}$ from the Poisson distribution $\mathrm{Poi}\!\left(\frac{\mu_i\beta_j}{\phi}\right)$.
-\item Scale back to the original units by setting $X_{ij}=\phi x_{ij}$.
-\end{enumerate}
-\end{enumerate}
-This representation involves only a one-dimensional integration over the hyperparameter $\tau$ together with beta, negative binomial and multinomial building blocks.
+For fixed $\tau$, reserve means and predictive variances are obtained by substituting \eqref{eq:u_v_tau} into the general formulas of \Cref{sec:predictive}. The next two subsections verify the two classical endpoints, starting with the fully data-driven Chain Ladder limit and then moving to the exposure-driven Cape Cod limit.
 
-The hyperparameter posterior $p(\tau\mid X)$ is one-dimensional and can be explored by simple 
-numerical quadrature or Adaptive Rejection Sampling. This is already significantly simpler than the high-dimensional MCMC procedures required for inference of the full vector of origin and development parameters without the analytic treatment set out in this paper. For empirical Bayes implementation, one may replace $p(\tau\mid X)$ by the point mass at the MAP estimate $\tau^{MAP}$, 
-obtained from the one-dimensional optimisation of \eqref{eq:tau_posterior}, 
-or the maximum marginal likelihood estimate $\tau^{MML}$, obtained from the one-dimensional 
-optimisation of the marginal likelihood. This is simple enough to be implemented in a spreadsheet.
+\subsection{The Chain Ladder weak-prior limit}\label{subsec:weak_prior_limit}
 
-
-
-\subsection{Reserve mean}
-
-For a future cell $(i,j)$ with $i+j>n+1$, define the random weight
+As $\tau\downarrow0$ in \eqref{eq:a_b_tau}, the exposure-centred family tends to an improper prior. In $\xi$ coordinates, the limit is
 \begin{equation}
-W_{ij}
-:= \frac{\mu_i}{\sum_{r=1}^{n-j+1} \mu_r}
-= \frac{1-\xi_i}{\xi_i}\prod_{k=n-j+2}^{i-1}\xi_k^{-1}.
-\label{eq:W_ij}
+\xi_i \sim \BetaD(1,0),
+\qquad i=2,\dots,n,
+\label{eq:xi_prior_cl}
 \end{equation}
-Since the $\xi_i\mid X,\tau$ are independent beta variables, the expectation factorises.
-
-\begin{proposition}\label{prop:first_moment}
-For a future cell $(i,j)$, define
+Then \Cref{thm:xi_posterior_general} gives
 \begin{equation}
-m_{ij}(\tau) := \E[W_{ij}\mid X,\tau].
+\xi_i\mid X \sim \BetaD(1+s_i,d_i),
+\qquad i=2,\dots,n.
+\label{eq:xi_post_tau0}
+\end{equation}
+Consequently,
+\begin{equation}
+\E\!\left[\frac{1-\xi_i}{\xi_i}\,\middle|\,X\right]=\frac{d_i}{s_i},
+\qquad
+\E\!\left[\xi_i^{-1}\,\middle|\,X\right]=\frac{s_i+d_i}{s_i}.
+\label{eq:inverse_moments_tau0}
+\end{equation}
+Substituting into \eqref{eq:first_moment_mij} gives
+\begin{equation}
+\E[X_{ij}\mid X]
+=
+C_j\frac{d_i}{s_i}
+\prod_{k=n-j+2}^{i-1}\frac{s_k+d_k}{s_k}.
+\label{eq:cell_mean_tau0}
+\end{equation}
+The next proposition shows that it coincides exactly with the usual development-side Chain Ladder completion.
+
+\begin{proposition}[Transpose invariance of Chain Ladder]\label{prop:transpose_invariance}
+Let
+\begin{equation}
+D_{ij}:=\sum_{k=1}^{j}X_{ik},
+\qquad i+j\le n+1,
+\label{eq:Dij_def}
+\end{equation}
+be the development-cumulative triangle, with Chain Ladder factors
+\begin{equation}
+f_j:=
+\frac{\sum_{i=1}^{n-j}D_{i,j+1}}
+{\sum_{i=1}^{n-j}D_{i,j}},
+\qquad j=1,\dots,n-1.
+\label{eq:fj_def}
+\end{equation}
+Also let
+\begin{equation}
+O_{ij}:=\sum_{k=1}^{i}X_{kj},
+\qquad i+j\le n+1,
+\label{eq:Oij_def}
+\end{equation}
+be the origin-cumulative triangle, with factors obtained by applying Chain Ladder to the transposed triangle,
+\begin{equation}
+g_i:=
+\frac{\sum_{j=1}^{n-i}O_{i+1,j}}
+{\sum_{j=1}^{n-i}O_{i,j}},
+\qquad i=1,\dots,n-1.
+\label{eq:gi_def}
+\end{equation}
+Then both procedures produce the same completed incremental triangle.
+\end{proposition}
+
+\begin{proof}
+Define
+\begin{equation}
+q_j:=\prod_{k=j}^{n-1}f_k^{-1},
+\qquad q_n=1,
+\qquad q_0:=0,
+\label{eq:qj_cl_def}
+\end{equation}
+and set
+\begin{equation}
+p_j:=q_j-q_{j-1},
+\qquad j=1,\dots,n.
+\label{eq:pj_cl_def}
+\end{equation}
+Ordinary Chain Ladder then gives the completed cumulative triangle
+\begin{equation}
+\widehat D_{ij}=\widehat U_i q_j,
+\qquad
+\widehat U_i=\frac{D_{i,n-i+1}}{q_{n-i+1}},
+\label{eq:Dhat_cl}
+\end{equation}
+so the completed incremental triangle is
+\begin{equation}
+\widehat X_{ij}=\widehat D_{ij}-\widehat D_{i,j-1}=\widehat U_i p_j.
+\label{eq:Xhat_cl_factor}
+\end{equation}
+Now define the fitted origin-cumulative triangle
+\begin{equation}
+\widehat O_{ij}:=\sum_{k=1}^{i}\widehat X_{kj}=p_j\sum_{k=1}^{i}\widehat U_k=:p_jV_i.
+\label{eq:Ohat_def}
+\end{equation}
+For observed cells with $i+j\le n+1$, every summand in $O_{ij}=\sum_{k=1}^{i}X_{kj}$ is observed, so $\widehat O_{ij}=O_{ij}$ on the observed region. Therefore
+\begin{equation}
+g_i
+=
+\frac{\sum_{j=1}^{n-i}O_{i+1,j}}{\sum_{j=1}^{n-i}O_{i,j}}
+=
+\frac{\sum_{j=1}^{n-i}\widehat O_{i+1,j}}{\sum_{j=1}^{n-i}\widehat O_{i,j}}
+=
+\frac{V_{i+1}}{V_i}.
+\label{eq:gi_vi}
+\end{equation}
+For fixed development period $j$, transposed Chain Ladder yields
+\begin{equation}
+\widetilde O_{ij}=O_{n-j+1,j}\prod_{k=n-j+1}^{i-1}g_k,
+\qquad i>n-j+1.
+\label{eq:Otilde_transposed_def}
+\end{equation}
+Since $O_{n-j+1,j}=\widehat O_{n-j+1,j}=p_jV_{n-j+1}$ and $g_k=V_{k+1}/V_k$,
+\begin{equation}
+\widetilde O_{ij}=p_jV_{n-j+1}\prod_{k=n-j+1}^{i-1}\frac{V_{k+1}}{V_k}=p_jV_i=\widehat O_{ij}.
+\label{eq:Otilde_transposed}
+\end{equation}
+Taking first differences in the origin direction gives
+\begin{equation}
+\widetilde X_{ij}=\widetilde O_{ij}-\widetilde O_{i-1,j}=p_j(V_i-V_{i-1})=\widehat U_i p_j=\widehat X_{ij}.
+\label{eq:transpose_same_incremental}
+\end{equation}
+Thus the completed incremental triangles coincide.
+\end{proof}
+
+\begin{corollary}
+The weak-prior limit \eqref{eq:xi_prior_cl} recovers the classical Chain Ladder completion exactly.
+\end{corollary}
+
+
+\subsection{Cape Cod as the strong-prior exposure-centred limit}\label{subsec:strong_prior_limit}
+
+At the other endpoint, as $\tau\to\infty$ in \eqref{eq:a_b_tau}, the origin-period prior concentrates on the exposure index. 
+This endpoint is the classical Cape Cod method. Cape Cod is often used in practice as a data-driven way of estimating the Bornhuetter--Ferguson prior loss ratio: it estimates a common loss-ratio level from the observed payments, exposures and development pattern, then applies that level to each origin period's exposure. In the present formulation this emerges as the strong-prior limit of the exposure-centred origin prior.
+
+In this limit, \eqref{eq:beta_post_log} gives
+\begin{equation}
+\E[\beta_j\mid X]
+=
+\phi\frac{c_j}{\sum_{r=1}^{n-j+1} \mu_r^0}
+=
+E_1\frac{C_j}{\sum_{r=1}^{n-j+1}E_r}.
+\label{eq:beta_mean_capecod}
+\end{equation}
+Define the additive loss-ratio components
+\begin{equation}
+\ell_j:=\frac{\beta_j}{E_1},
+\qquad j=1,\dots,n.
+\label{eq:additive_lr_def}
 \end{equation}
 Then
 \begin{equation}
-m_{ij}(\tau)
+\E[\ell_j\mid X]
 =
-\frac{d_i+\tau(1-\xi_i^0)}{s_i+\tau \xi_i^0}
-\prod_{k=n-j+2}^{i-1}
-\frac{s_k+d_k+\tau}{s_k+\tau \xi_k^0},
-\label{eq:first_moment_mij}
+\frac{C_j}{\sum_{r=1}^{n-j+1}E_r}.
+\label{eq:additive_lr_cc}
 \end{equation}
-provided the displayed expectations exist.
-\end{proposition}
-
-\begin{proof}
-Use \eqref{eq:inverse_moments_xi} together with independence of the $\xi_k$.
-\end{proof}
-
-Hence the posterior mean reserve for origin period $i$ is
+Summing over development periods gives the common loss ratio
 \begin{equation}
-\widehat{R}_i(\tau)
-:= \E\!\left[\sum_{j=n-i+2}^{n} X_{ij}\,\middle|\,X,\tau\right]
-= \sum_{j=n-i+2}^{n} C_j m_{ij}(\tau),
-\label{eq:row_reserve_mean_tau}
-\end{equation}
-and the total reserve mean is
-\begin{equation}
-\widehat{R}(\tau)
-= \sum_{i+j>n+1} C_j m_{ij}(\tau).
-\label{eq:total_reserve_mean_tau}
-\end{equation}
-The fully Bayesian reserve mean is obtained by averaging over the hyperparameter posterior,
-\begin{equation}
-\widehat{R} = \E[T\mid X] = \int_0^{\infty} \widehat{R}(\tau)\,p(\tau\mid X)\,\dd\tau,
-\label{eq:fully_bayes_reserve_mean}
-\end{equation}
-where
-\begin{equation}
-T := \sum_{i+j>n+1} X_{ij}
-\label{eq:total_reserve}
-\end{equation}
-is the total future reserve.
-
-\subsection{Second moments, covariance structure and prediction error}
-
-The predictive law is exact, so reserve uncertainty follows from the law of total variance together with closed-form moments of the $W_{ij}$. For a future cell, define
-\begin{equation}
-m^{(2)}_{ij}(\tau):=\E[W_{ij}^2\mid X,\tau].
-\end{equation}
-A direct calculation gives
-\begin{equation}
-m^{(2)}_{ij}(\tau)
-=
-\frac{(d_i+\tau(1-\xi_i^0))(d_i+\tau(1-\xi_i^0)+1)}{(s_i+\tau \xi_i^0)(s_i+\tau \xi_i^0-1)}
-\prod_{k=n-j+2}^{i-1}
-\frac{(s_k+d_k+\tau)(s_k+d_k+\tau+1)}{(s_k+\tau \xi_k^0)(s_k+\tau \xi_k^0-1)}.
-\label{eq:second_moment_sij}
-\end{equation}
-
-For mixed moments, define for any finite set $\mathcal S$ of future cells the exponents $a_k(\mathcal S)$ and $b_k(\mathcal S)$ by the identity
-\begin{equation}
-\prod_{(i,j)\in\mathcal S} W_{ij}
-=
-\prod_{k=2}^{n} \xi_k^{-a_k(\mathcal S)} (1-\xi_k)^{b_k(\mathcal S)}.
-\label{eq:generic_exponents}
-\end{equation}
-Since the $\xi_k\mid X,\tau$ are independent beta variables, all mixed moments are explicit:
-\begin{equation}
-\E\!\left[\prod_{(i,j)\in\mathcal S} W_{ij}\,\middle|\,X,\tau\right]
-=
-\prod_{k=2}^{n}
-\frac{B\bigl(u_k(\tau)-a_k(\mathcal S),\,v_k(\tau)+b_k(\mathcal S)\bigr)}{B\bigl(u_k(\tau),v_k(\tau)\bigr)},
-\label{eq:generic_mixed_moment}
-\end{equation}
-provided the moments exist. In particular, for two future cells $(i,j)$ and $(\ell,h)$, define
-\begin{equation}
-q_{ij,\ell h}(\tau):=\E[W_{ij}W_{\ell h}\mid X,\tau].
-\label{eq:q_mixed}
-\end{equation}
-
-\begin{proposition}\label{prop:var_cov_cells}
-For each future cell $(i,j)$,
-\begin{equation}
-\Var(X_{ij}\mid X,\tau)
-=
-C_j m_{ij}(\tau)
-+
-C_j m^{(2)}_{ij}(\tau)
-+
-C_j^2\bigl(m^{(2)}_{ij}(\tau)-m_{ij}(\tau)^2\bigr).
-\label{eq:var_cell_tau}
-\end{equation}
-For two distinct future cells,
-\begin{align}
-\Cov(X_{ij},X_{\ell j}\mid X,\tau)
-&=
-C_j q_{ij,\ell j}(\tau)
-+
-C_j^2\bigl(q_{ij,\ell j}(\tau)-m_{ij}(\tau)m_{\ell j}(\tau)\bigr),
-\qquad i\neq \ell,
-\label{eq:cov_same_col_tau}\\
-\Cov(X_{ij},X_{\ell h}\mid X,\tau)
-&=
-C_j C_h\bigl(q_{ij,\ell h}(\tau)-m_{ij}(\tau)m_{\ell h}(\tau)\bigr),
-\qquad j\neq h.
-\label{eq:cov_diff_col_tau}
-\end{align}
-\end{proposition}
-
-\begin{proof}
-Conditional on $\xi$, the same-column predictive law is obtained by a negative-binomial total followed by a multinomial allocation, and different columns are independent. The conditional mean of $X_{ij}$ is $C_j W_{ij}$ and the conditional variance is $C_j W_{ij}+C_j W_{ij}^2$. Applying the law of total variance and the law of total covariance, and then taking expectations using \eqref{eq:first_moment_mij}, \eqref{eq:second_moment_sij} and \eqref{eq:generic_mixed_moment}, yields the result.
-\end{proof}
-
-
-For spreadsheet implementation it is often more convenient to work directly with the future-payment totals by origin period,
-\begin{equation}
-T_i^{\mathrm{fut}}:=\sum_{j=n-i+2}^{n} X_{ij},
-\qquad i=2,\dots,n.
-\label{eq:origin_future_total}
-\end{equation}
-rather than with individual cells.
-
-\begin{proposition}\label{prop:origin_total_cov}
-For origin periods $i$ and $\ell$,
-\begin{equation}
-\Cov\bigl(T_i^{\mathrm{fut}},T_{\ell}^{\mathrm{fut}}\mid X,\tau\bigr)
-=
-\sum_{j=n-i+2}^{n}\sum_{h=n-\ell+2}^{n}
-\Gamma_{ij,\ell h}(\tau),
-\label{eq:origin_total_cov}
-\end{equation}
-where
-\begin{equation}
-\Gamma_{ij,\ell h}(\tau)
+\widehat\kappa_{\mathrm{CC}}
 :=
-\mathbf 1_{\{j=h\}} C_j q_{ij,\ell h}(\tau)
-+ C_j C_h\bigl(q_{ij,\ell h}(\tau)-m_{ij}(\tau)m_{\ell h}(\tau)\bigr)
-+ \mathbf 1_{\{(i,j)=(\ell,h)\}} C_j m_{ij}(\tau).
-\label{eq:Gamma_origin_total}
+\sum_{j=1}^{n}\frac{C_j}{\sum_{r=1}^{n-j+1}E_r}.
+\label{eq:kappa_cc_additive}
 \end{equation}
-In particular,
+Hence the posterior expected ultimate in origin year $i$ is
 \begin{equation}
-\Var\bigl(T_i^{\mathrm{fut}}\mid X,\tau\bigr)
+\widehat U_i^{\mathrm{CC}}
 =
-\sum_{j=n-i+2}^{n}\sum_{h=n-i+2}^{n}
-\Gamma_{ij,ih}(\tau).
-\label{eq:origin_total_var}
+\E\!\left[\sum_{j=1}^{n}\mu_i\beta_j\,\middle|\,X\right]
+=
+E_i\widehat\kappa_{\mathrm{CC}}.
+\label{eq:ultimate_cc}
 \end{equation}
-\end{proposition}
-
-\begin{proof}
-Expand the covariance of the row sums and substitute the cellwise formulas from \eqref{eq:var_cell_tau}, \eqref{eq:cov_same_col_tau} and \eqref{eq:cov_diff_col_tau}. The three cases, identical cells, distinct cells in the same column, and cells in different columns, are captured by \eqref{eq:Gamma_origin_total}.
-\end{proof}
-
-Summing the cellwise contributions gives the reserve uncertainty for any origin period and for the total reserve. For the total reserve,
+Define the cumulative paid proportion by
 \begin{equation}
-V(\tau):=\Var(T\mid X,\tau)
-\label{eq:Vtau}
+\widehat q_m^{\mathrm{CC}}
+=
+\frac{\sum_{j=1}^{m} C_j\big/\sum_{r=1}^{n-j+1}E_r}
+{\sum_{j=1}^{n} C_j\big/\sum_{r=1}^{n-j+1}E_r},
+\qquad m=1,\dots,n.
+\label{eq:q_cc}
 \end{equation}
-is obtained by summing \eqref{eq:var_cell_tau}--\eqref{eq:cov_diff_col_tau} over all future cells. The fully Bayesian prediction error is then
+Then
+\begin{equation}
+\sum_{i=1}^{n}E_i\widehat q_{n-i+1}^{\mathrm{CC}}
+=
+\frac{\sum_{j=1}^{n}C_j}{\widehat\kappa_{\mathrm{CC}}},
+\label{eq:cc_denominator_identity}
+\end{equation}
+so that
+\begin{equation}
+\widehat\kappa_{\mathrm{CC}}
+=
+\frac{\sum_{j=1}^{n}C_j}{\sum_{i=1}^{n}E_i\widehat q_{n-i+1}^{\mathrm{CC}}}.
+\label{eq:kappa_cc_from_beta}
+\end{equation}
+Therefore
+\begin{equation}
+\widehat R_i^{\mathrm{CC}}
+=
+E_i\widehat\kappa_{\mathrm{CC}}\bigl(1-\widehat q_{n-i+1}^{\mathrm{CC}}\bigr).
+\label{eq:reserve_cc}
+\end{equation}
+Thus the strong-prior exposure-centred limit of the exact Bayesian model recovers the classical Cape Cod common loss ratio, 
+additive loss-ratio profile and reserve formula exactly. The word `strong' here refers to the origin-period index: the relative ultimate claims by origin period are fixed in proportion to exposure, while the common loss-ratio level is still estimated from the triangle. This is precisely the data-driven BF-prior interpretation of Cape Cod.
+
+
+
+\subsection{Adding a hyperprior on the shrinkage strength}\label{sec:hierarchical}
+
+The hierarchical model is introduced to express a familiar actuarial idea: origin-year expected loss ratios 
+are usually similar, but not identical. Pure Chain Ladder estimates each origin period from its own claims 
+experience with essentially no pooling, while pure Cape Cod imposes a common exposure-scaled loss ratio profile. 
+
+The fixed-$\tau$ family already gives an exact credibility bridge between Chain Ladder and Cape Cod. The marginal likelihood is
+
+\begin{equation}
+L_m(\tau;X)
+\propto
+\prod_{i=2}^{n}
+\frac{B\bigl(u_i(\tau),v_i(\tau)\bigr)}
+{B\!\left(1+\tau\sum_{r=1}^{i-1}e_r,\tau e_i\right)},
+\label{eq:marginal_likelihood_tau}
+\end{equation}
+
+One may also place a hyperprior $\pi(\tau)$ on $\tau$. The resulting posterior is:
+
+\begin{equation}
+p(\tau\mid X)
+\propto
+\pi(\tau)L_m(\tau;X).
+\label{eq:tau_posterior}
+\end{equation}
+
+The corresponding marginal likelihood is therefore proportional to the product term in \eqref{eq:tau_posterior}. 
+This gives a simple one-dimensional route to several implementations. In a fully Bayesian treatment one may integrate over $p(\tau\mid X)$ by 
+quadrature or simulation. In this case it is important to ensure that the prior $\pi(\tau)$ is proper, since the marginal likelihood is finite as $\tau\rightarrow\infty$. In an empirical Bayes treatment one may maximise the marginal likelihood to obtain a maximum marginal likelihood estimate $\tau^{\mathrm{MML}}$. Alternatively, with a proper hyperprior $\pi(\tau)$, one may maximise \eqref{eq:tau_posterior} to obtain the MAP estimate $\tau^{\mathrm{MAP}}$. 
+
+Once a value of $\tau$ has been selected, either by maximisation or by simulation from the hyperposterior, all reserve moments and simulation formulas below apply without further approximation.
+
+
+
+The fully Bayesian prediction error is then
 \begin{equation}
 \Var(T\mid X)
 =
@@ -622,302 +1019,30 @@ is obtained by summing \eqref{eq:var_cell_tau}--\eqref{eq:cov_diff_col_tau} over
 -\widehat{R}^2,
 \label{eq:full_bayes_var_total}
 \end{equation}
-where $\widehat{R}$ is given by \eqref{eq:fully_bayes_reserve_mean}.
 
-\section{A hierarchical credibility bridge between Chain Ladder and Cape Cod}\label{sec:hierarchical}
-
-The hierarchical model is introduced to express a familiar actuarial idea: origin-year expected loss ratios are usually similar, but not identical. Pure Chain Ladder estimates each origin period from its own claims experience with essentially no pooling, while pure Cape Cod imposes a common exposure-scaled loss ratio profile. The original algebra is most naturally written in terms of a positive concentration parameter $\tau$. 
-For reporting purposes it is sometimes convenient to replace this by a bounded transform, but the substantive credibility effect still operates through $\tau$ relative to the count-like posterior terms. We therefore begin by recording a simple bounded reparameterisation, then derive the two classical endpoints and the exact finite-$\tau$ bridge between them. The section closes with an optional extension in which prior structure is also placed on the overall loss-ratio level.
-
-
-
-\subsection{The weak-priorChain-Ladder endpoint}\label{subsec:weak_prior_limit}
-
-
-As $\tau\downarrow 0$, the prior benchmark disappears and
-\begin{equation}
-\xi_i\mid X,\tau\downarrow 0 \sim \BetaD(1+s_i,d_i).
-\label{eq:xi_post_tau0}
-\end{equation}
-Consequently,
-\begin{equation}
-\E\!\left[\frac{1-\xi_i}{\xi_i}\,\middle|\,X,\tau=0\right]=\frac{d_i}{s_i},
-\qquad
-\E\!\left[\xi_i^{-1}\,\middle|\,X,\tau=0\right]=\frac{s_i+d_i}{s_i},
-\label{eq:inverse_moments_tau0}
-\end{equation}
-and therefore
-\begin{equation}
-\E[X_{ij}\mid X,\tau=0]
-=
-C_j\frac{d_i}{s_i}
-\prod_{k=n-j+2}^{i-1}\frac{s_k+d_k}{s_k}.
-\label{eq:cell_mean_tau0}
-\end{equation}
-This is the exact data-driven origin-side recursion obtained by the model in the weak-prior limit. The next proposition shows that this origin-side completion coincides exactly with the usual development-side Chain Ladder completion.
-
-
-\begin{proposition}[Transpose invariance of Chain Ladder]\label{prop:transposE_invariance}
-Let $X_{ij}$ be an incremental triangle observed for $i+j\le n+1$. Define the development-cumulative triangle
-\[
-D_{ij}:=\sum_{k=1}^{j}X_{ik},
-\qquad i+j\le n+1,
-\]
-and the corresponding Chain Ladder factors
-\[
-f_j=\frac{\sum_{i=1}^{n-j}D_{i,j+1}}{\sum_{i=1}^{n-j}D_{i,j}},
-\qquad j=1,\dots,n-1.
-\]
-Also define the origin-cumulative triangle
-\[
-O_{ij}:=\sum_{k=1}^{i}X_{kj},
-\qquad i+j\le n+1,
-\]
-and the factors obtained by applying Chain Ladder to the transposed triangle,
-\[
-g_i=\frac{\sum_{j=1}^{n-i}O_{i+1,j}}{\sum_{j=1}^{n-i}O_{i,j}},
-\qquad i=1,\dots,n-1.
-\]
-Then both procedures produce the same completed incremental triangle.
-\end{proposition}
-
-\begin{proof}
-Define
-\[
-q_j:=\prod_{k=j}^{n-1}f_k^{-1},\qquad q_n=1,\qquad q_0:=0,
-\]
-and set $p_j:=q_j-q_{j-1}$. Ordinary Chain Ladder then gives the completed cumulative triangle
-\[
-\widehat D_{ij}=\widehat U_i q_j,
-\qquad
-\widehat U_i=\frac{D_{i,n-i+1}}{q_{n-i+1}},
-\]
-so the completed incremental triangle is multiplicative:
-\[
-\widehat X_{ij}=\widehat D_{ij}-\widehat D_{i,j-1}=\widehat U_i p_j.
-\]
-Now define the fitted origin-cumulative triangle
-\[
-\widehat O_{ij}:=\sum_{k=1}^{i}\widehat X_{kj}=p_j\sum_{k=1}^{i}\widehat U_k=:p_jV_i.
-\]
-For observed cells with $i+j\le n+1$, every summand in $O_{ij}=\sum_{k=1}^{i}X_{kj}$ is observed, so $\widehat O_{ij}=O_{ij}$ on the observed region. Therefore
-\[
-g_i
-=\frac{\sum_{j=1}^{n-i}O_{i+1,j}}{\sum_{j=1}^{n-i}O_{i,j}}
-=\frac{\sum_{j=1}^{n-i}\widehat O_{i+1,j}}{\sum_{j=1}^{n-i}\widehat O_{i,j}}
-=\frac{V_{i+1}}{V_i}.
-\]
-For fixed development period $j$, transposed Chain Ladder yields
-\[
-\widetilde O_{ij}=O_{n-j+1,j}\prod_{k=n-j+1}^{i-1}g_k,
-\qquad i>n-j+1.
-\]
-Since $O_{n-j+1,j}=\widehat O_{n-j+1,j}=p_jV_{n-j+1}$ and $g_k=V_{k+1}/V_k$,
-\[
-\widetilde O_{ij}=p_jV_{n-j+1}\prod_{k=n-j+1}^{i-1}\frac{V_{k+1}}{V_k}=p_jV_i=\widehat O_{ij}.
-\]
-Taking first differences in the origin direction gives
-\[
-\widetilde X_{ij}=\widetilde O_{ij}-\widetilde O_{i-1,j}=p_j(V_i-V_{i-1})=\widehat U_i p_j=\widehat X_{ij}.
-\]
-Thus the completed incremental triangles coincide.
-\end{proof}
-
-\begin{corollary}
-The weak-prior limit $\tau\downarrow 0$ of the hierarchical model recovers the classical Chain Ladder completion exactly.
-\end{corollary}
-
-\subsection{Cape Cod as the strong-prior exposure-centred limit}
-
-Now take an exposure-based benchmark origin-period index,
-\begin{equation}
-\mu_i^0 = \frac{E_i}{E_1},
-\end{equation}
-with
-\begin{equation}
-\xi_i^0=\frac{\sum_{k=1}^{i-1}E_k}{\sum_{k=1}^{i}E_k}
-\end{equation}
-As $\tau\to\infty$, the prior forces $\xi_i\to\xi_i^0$ and hence $\mu_i\to E_i/E_1$. Conditional on this deterministic exposure profile, \eqref{eq:beta_post_log} gives
-\begin{equation}
-\E[\beta_j\mid X]
-=
-\phi\frac{c_j}{\sum_{k=1}^{n-j+1} \mu_k^0}
-= E_1\frac{C_j}{\sum_{k=1}^{n-j+1}{E_{k}}}.
-\label{eq:beta_mean_capecod}
-\end{equation}
-Thus the additive loss-ratio component
-\begin{equation}
-\ell_j:=\frac{\beta_j}{E_1}
-\end{equation}
-has posterior mean
-\begin{equation}
-\E[\ell_j\mid X]
-=\frac{C_j}{{\sum_{r=1}^{n-j+1}{E_{r}}}}.
-\label{eq:additive_lr_cc}
-\end{equation}
-Summing over development periods gives the common loss ratio
-\begin{equation}
-\widehat{\kappa}_{\mathrm{CC}}
-:= \frac{\sum_{j=1}^{n}C_j}{{\sum_{r=1}^{n-j+1}{E_{r}}}}.
-\label{eq:kappa_cc_from_beta}
-\end{equation}
-Hence the posterior expected exposure-based ultimate is
-\begin{equation}
-\widehat{U}_i^{\mathrm{CC}} = E\left[\sum_{j=1}^{n}\mu_i\beta_j|X\right]  = E_i\widehat{\kappa}_{\mathrm{CC}},
-\label{eq:ultimate_cc}
-\end{equation}
-Defining the cumulative paid proportion as
-\begin{equation}
-\widehat q_m^{\mathrm{CC}}
-=
-\frac{\sum_{j=1}^{m} C_j/{\sum_{r=1}^{n-j+1}{E_{r}}}}{\sum_{j=1}^{n} C_j/{\sum_{r=1}^{n-j+1}{E_{r}}}}.
-\label{eq:q_cc}
-\end{equation}
-one obtains see the familiar expression for the Cape Cod loss ratio estimator.
-\begin{equation}
-\widehat{\kappa}_{\mathrm{CC}}
-:= \sum_{i=1}^{n}\frac{C_i}{{\sum_{i=1}^{n}{q_i E_{i}}}}.
-\label{eq:kappa_cc_from_beta}
-\end{equation}
-Therefore
-\begin{equation}
-\widehat R_i^{\mathrm{CC}}
-=
- E_i\widehat\kappa_{\mathrm{CC}}\bigl(1-\widehat q_{n-i+1}^{\mathrm{CC}}\bigr).
-\label{eq:reserve_cc}
-\end{equation}
-Thus the strong-prior exposure-centred limit of the exact Bayesian model recovers the classical Cape Cod common loss ratio, additive loss-ratio profile and reserve formula exactly.
-
-\subsection{Intermediate credibility-weighted models}
-
-For finite $\tau$, reserve means and predictive variances are explicit functions of the posterior beta parameters $u_i(\tau)$ and $v_i(\tau)$. The model therefore moves continuously between the data-driven ODP endpoint \eqref{eq:cell_mean_tau0} and the Cape Cod endpoint \eqref{eq:reserve_cc} as $\tau$ varies. The credibility weighting is explicit. For each $i\ge 2$,
-\begin{equation}
-\E[\xi_i\mid X,\tau]
-= z_i(\tau)\,\xi_i^0 + \bigl(1-z_i(\tau)\bigr)\,\widehat \xi_i^{\mathrm{CL}},
-\qquad
-z_i(\tau)=\frac{\tau}{1+s_i+d_i+\tau},
-\qquad
-\widehat \xi_i^{\mathrm{CL}}=\frac{1+s_i}{1+s_i+d_i}.
-\label{eq:credibility_xi_mean}
-\end{equation}
-Moreover, the inverse moments entering the reserve formula satisfy
-\begin{equation}
-\E\!\left[\xi_i^{-1}\,\middle|\,X,\tau\right]
-= w_i(\tau)\,\frac{s_i+d_i}{s_i}+\bigl(1-w_i(\tau)\bigr)\,\frac{1}{\xi_i^0},
-\label{eq:credibility_inverse2}
-\end{equation}
-with
-\begin{equation}
-w_i(\tau)=\frac{s_i}{s_i+\tau \xi_i^0}.
-\label{eq:wi_tau}
-\end{equation}
-Thus the bridge between Chain Ladder and Cape Cod appears directly as an exact credibility weighting inside the reserve formula itself.
-
-The Cape Cod limit is most naturally expressed through two objects: the common loss ratio and the additive loss-ratio profile implied by the data and exposures. In this formulation the normalised development pattern is a derived quantity rather than a primitive input.
-
-\subsection{External benchmark loss ratios via a common-rate gamma prior}\label{subsec:external_lr}
+\section{External benchmark loss ratios via a common-rate gamma prior}\label{subsec:external_lr}
 
 The logarithmic prior \eqref{eq:beta_log_prior} is the choice that recovers the internal Cape Cod loss ratio in the strong-prior exposure-centred limit. If one wishes instead to blend that internal loss ratio with an external benchmark, a natural extension is to replace \eqref{eq:beta_log_prior} by independent gamma priors with common rate
 \begin{equation}
 \beta_j \stackrel{\mathrm{ind}}{\sim} \GammaD(\alpha_j,b),
-\qquad \alpha_j>0,\ b>0,\qquad j=1,\dots,n.
+\qquad \alpha_j>0,\ b>0,
+\qquad j=1,\dots,n.
 \label{eq:beta_common_rate_prior}
 \end{equation}
-Here $b$ governs prior credibility on the overall loss-ratio level, while the shape parameters $\alpha_j$ may be used to encode prior information on the development profile. Let
+Write
 \begin{equation}
 A:=\sum_{j=1}^{n}\alpha_j,
 \qquad
-A_i:=\sum_{j=1}^{n-i+1}\alpha_j,
-\qquad i=2,\dots,n,
-\label{eq:A_Ai_def}
-\end{equation}
-and define the fixed pseudo-origin mass
-\begin{equation}
-\mu_0:=b\phi.
-\label{eq:mu0_shift}
-\end{equation}
-
-Integrating out the development parameters yields
-\begin{equation}
-p(\mu\mid X)
-\propto
-\pi(\mu)
-\left(\prod_{i=2}^{n}\mu_i^{d_i}\right)
-\prod_{m=2}^{n}
-\left(
-\mu_0+\sum_{r=1}^{m}\mu_r
-\right)^{-(c_{n-m+1}+\alpha_{n-m+1})}.
-\label{eq:mu_kernel_shifted}
-\end{equation}
-This has the same inverse-generalised-Dirichlet structure as before, except that the cumulative sums are shifted by the fixed amount $\mu_0$.
-
-Accordingly, make the change of variables
-\begin{equation}
-\widetilde\xi_i:=\frac{\sum_{j=0}^{i-1} \mu_j}{\sum_{j=0}^i \mu_j},
-\qquad i=2,\dots,n.
-\label{eq:augmented_xi_def}
-\end{equation}
-For a benchmark index $\mu^0$, define likewise
-\begin{equation}
-\widetilde\xi_i^0:=\frac{\sum_{j=0}^{i-1} \mu_j^0}{\sum_{j=0}^i \mu_j^0},
-\qquad i=2,\dots,n.
-\label{eq:augmented_xi0_def}
-\end{equation}
-
-The one-parameter prior family is then
-\begin{equation}
-\widetilde\xi_i\mid\tau
-\sim
-\BetaD\!\left(\tau\widetilde\xi_i^0,\tau(1-\widetilde\xi_i^0)\right),
-\qquad i=2,\dots,n,
-\label{eq:augmented_xi_prior_tau}
-\end{equation}
-or equivalently
-\begin{equation}
-\pi(\mu\mid\tau,b)
-=
-\prod_{i=2}^{n}
-{B\!\left(\tau\widetilde\xi_i^0,\tau(1-\widetilde\xi_i^0)\right)}^{-1}
-\mu_i^{\,\tau(1-\widetilde\xi_i^0)-1}
- \sum_{j=0}^{i-1} \mu_j^{\,\tau\widetilde\xi_i^0}
- \sum_{j=0}^i \mu_j^{-\tau},
-\qquad \mu_i>0,
-\label{eq:augmented_igd_mu_prior_tau}
-\end{equation}
-
-\begin{theorem}\label{thm:augmented_xi_posterior_tau}
-Under \eqref{eq:beta_common_rate_prior} and \eqref{eq:augmented_xi_prior_tau},
-\begin{equation}
-\widetilde\xi_i\mid X,\tau \stackrel{\mathrm{ind}}{\sim}
-\BetaD\!\bigl(\widetilde u_i(\tau),\widetilde v_i(\tau)\bigr),
-\qquad i=2,\dots,n,
-\label{eq:augmented_xi_posterior_tau}
-\end{equation}
-with
-\begin{equation}
-\widetilde u_i(\tau):=1+s_i+A_i+\tau\widetilde\xi_i^0,
+B:=\sum_{j=1}^{n}\beta_j,
 \qquad
-\widetilde v_i(\tau):=d_i+\tau(1-\widetilde\xi_i^0).
-\label{eq:augmented_uv_tau}
-\end{equation}
-\end{theorem}
-
-\begin{proof}
-The shift by $\mu_0$ is absorbed into the transformed coordinates \eqref{eq:augmented_xi_def}, and the additional exponents coming from the gamma prior accumulate into the terms $A_i$. The posterior therefore factorises into the beta laws \eqref{eq:augmented_xi_posterior_tau}.
-\end{proof}
-
-The interpretation is appealing. The hyperparameter $\tau$ still controls partial pooling of the relativity index, while $b$ introduces prior credibility on the overall Cape Cod loss-ratio level. The two sources of prior information are therefore separated cleanly: $\tau$ governs the benchmark relativity index and $b$ governs the common loss ratio.
-
-In the strong-prior exposure-centred limit $\mu_i^0=E_i/E_1$, write
-\begin{equation}
-\beta_j=Bp_j,
-\qquad p_j\ge 0,
-\qquad \sum_{j=1}^{n}p_j=1,
+p_j:=\frac{\beta_j}{B},
+\qquad j=1,\dots,n,
 \label{eq:Bp_decomp_external}
 \end{equation}
-and define
+and define the common loss ratio
 \begin{equation}
 \kappa:=\frac{B}{E_1}.
+\label{eq:kappa_def_external}
 \end{equation}
 Under \eqref{eq:beta_common_rate_prior},
 \begin{equation}
@@ -926,69 +1051,60 @@ B\sim \GammaD(A,b),
 p\sim \Dir(\alpha_1,\dots,\alpha_n),
 \label{eq:Bp_prior_external}
 \end{equation}
-with $B$ independent of $p$. Conditional on the development pattern $p$, the likelihood for $B$ remains \eqref{eq:B_likelihood}, so
+with $B$ independent of $p$.
+
+Now impose the strong exposure-centred origin-period prior $\mu_i=E_i/E_1$. Conditional on $p$, define the cumulative paid proportions
+\begin{equation}
+q_m:=\sum_{j=1}^{m}p_j,
+\qquad m=1,\dots,n.
+\label{eq:q_def_external}
+\end{equation}
+Then the likelihood for $B$ is gamma, and
 \begin{equation}
 B\mid p,X
 \sim
-\GammaD\!\left(
-A+C,\;
-b+\frac{1}{\phi E_1}\sum_{i=1}^{n}E_i q_{n-i+1}
-\right),
+\GammaD\!\left(A+C,\,b+\frac{1}{\phi E_1}\sum_{i=1}^{n}E_i q_{n-i+1}\right),
 \label{eq:B_post_external}
 \end{equation}
-where $q_m=\sum_{j=1}^{m}p_j$ and $C=\sum_{j=1}^{n}c_j$. Hence
+where $C:=\sum_{j=1}^{n}c_j$. Hence
 \begin{equation}
 \E[\kappa\mid p,X]
 =
-\frac{A+C}{
-E_1\left(
-b+\frac{1}{\phi E_1}\sum_{i=1}^{n}E_i q_{n-i+1}
-\right)
-}.
+\frac{A+C}{bE_1+\phi^{-1}\sum_{i=1}^{n}E_i q_{n-i+1}}.
 \label{eq:kappa_external_post_mean}
 \end{equation}
-If we define the external benchmark loss ratio by
+If we define the external benchmark loss ratio and the internal Cape Cod estimator associated with $p$ by
 \begin{equation}
 \kappa^{\mathrm{ext}}:=\frac{A}{bE_1},
-\label{eq:kappa_external_def}
-\end{equation}
-and the internal Cape Cod loss ratio corresponding to the pattern $p$ by
-\begin{equation}
-\widehat\kappa_{\mathrm{CC}}(p)
-:=
-\frac{\sum_{i=1}^{n}D_i}{\sum_{i=1}^{n}E_i q_{n-i+1}},
-\label{eq:kappa_cc_p}
+\qquad
+\widehat\kappa^{\mathrm{int}}(p):=\frac{\phi C}{\sum_{i=1}^{n}E_i q_{n-i+1}},
+\label{eq:kappa_ext_int_defs}
 \end{equation}
 then \eqref{eq:kappa_external_post_mean} can be written as the exact credibility blend
 \begin{equation}
 \E[\kappa\mid p,X]
 =
-z(p)\,\kappa^{\mathrm{ext}}
-+
-\bigl(1-z(p)\bigr)\,\widehat\kappa_{\mathrm{CC}}(p),
+\zeta(p)\,\widehat\kappa^{\mathrm{int}}(p)
++\bigl(1-\zeta(p)\bigr)\kappa^{\mathrm{ext}},
 \label{eq:kappa_external_blend}
 \end{equation}
-with
+where
 \begin{equation}
-z(p)
-=
-\frac{b}{
-b+\frac{1}{\phi E_1}\sum_{i=1}^{n}E_i q_{n-i+1}
-}.
-\label{eq:z_external}
+\zeta(p):=
+\frac{\phi^{-1}\sum_{i=1}^{n}E_i q_{n-i+1}}{bE_1+\phi^{-1}\sum_{i=1}^{n}E_i q_{n-i+1}}.
+\label{eq:zeta_external}
 \end{equation}
-
-This gives a second exact credibility bridge inside the same ODP framework. The parameter $\tau$ blends the data-driven Chain Ladder endpoint with the benchmark relativity index, while the common-rate parameter $b$ blends the internally estimated Cape Cod loss ratio with an external benchmark loss ratio. Taken together, the model provides an analytically tractable hierarchy in which profile credibility and level credibility can be controlled separately.
+Thus the origin-side prior controls the similarity of the origin-year loss ratios, while the common-rate gamma prior on the development scale supplies an exact credibility blend between the internal Cape Cod loss ratio and an external benchmark loss ratio. 
+In actuarial terms, development credibility and level credibility are distinct pieces of information. The former is handled by the exposure-centred origin prior; the latter is handled by the common-rate gamma prior.
 
 
 
 \section{Illustrative example: the Saluz Cape Cod data}\label{sec:example}
 
-To illustrate the method we use the numerical example from \citet{Saluz2015CapeCod}, who in turn use the W\"uthrich--Merz payments triangle together with on-level premiums. Table~\ref{tab:saluz_incremental} gives the incremental payments and premiums, and Table~\ref{tab:saluz_exposures} gives the implied benchmark relativity index for the exposure-centred prior. In this example the natural Cape Cod benchmark is therefore
-\[
-\mu_i^0=\frac{E_i}{E_1},
-\qquad i=1,\dots,n.
-\]
+To illustrate the method we use the numerical example from \citet{Saluz2015CapeCod}, 
+who in turn use the W\"uthrich--Merz payments triangle together with on-level premiums. 
+Table~\ref{tab:saluz_incremental} gives the incremental payments and premiums, and Table~\ref{tab:saluz_exposures} gives the 
+implied exposure-based index for the exposure-centred prior. 
 
 
 \begin{table}[htbp]
@@ -1011,7 +1127,7 @@ Origin $i$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & Premium $E_i$ \\
 10 & 5,675,568 &        &        &        &        &        &        &        &        &        & 15,210,363 \\
 \bottomrule
 \end{tabular}
-\caption{Incremental payments and on-level premiums from the Saluz Cape Cod example.}
+\caption{Incremental payments and premiums from the Saluz Cape Cod example.}
 \label{tab:saluz_incremental}
 \end{table}
 
@@ -1033,7 +1149,7 @@ Origin $i$ & Premium $E_i$ & Relative premium $E_i/E_1$ \\
 10 & 15,210,363 & 0.982991 \\
 \bottomrule
 \end{tabular}
-\caption{Exposure benchmark implied by the on-level premiums.}
+\caption{Premiums and exposure benchmark index implied by the premiums.}
 \label{tab:saluz_exposures}
 \end{table}
 
@@ -1057,7 +1173,7 @@ Origin & CL LR & CC LR & Hier LR & CL reserve & CC reserve & Hier reserve \\
 Total & 0.6699 & 0.6737 & 0.6714 & 6,047,061 & 6,617,625 & 6,266,177 \\
 \bottomrule
 \end{tabular}
-\caption{Posterior mean ultimate loss ratios and reserves by origin year under Chain Ladder, Cape Cod and the hierarchical credibility model.}
+\caption{Posterior estimated ultimate loss ratios and reserves by origin year under Chain Ladder, Cape Cod and the hierarchical credibility model.}
 \label{tab:saluz_results}
 \end{table}
 
@@ -1068,8 +1184,8 @@ Total & 0.6699 & 0.6737 & 0.6714 & 6,047,061 & 6,617,625 & 6,266,177 \\
 Method & Selected concentration & Total reserve & Reserve SD \\
 \midrule
 Chain Ladder & $\tau=0$ & 6,047,061 & 521,572 \\
+Hierarchical & $\widehat{\tau}_{\mathrm{EB}}=1960$ & 6,266,177 & 504,022 \\
 Cape Cod & $\tau\to \infty$ & 6,617,625 & 476,815 \\
-Hierarchical blend & $\widehat{\tau}_{\mathrm{EB}}=1960$ & 6,266,177 & 504,022 \\
 \bottomrule
 \end{tabular}
 \caption{Total reserve and reserve standard deviation for the three models, using the selected ODP scale parameter $\phi=21,610.84$. }
@@ -1095,7 +1211,8 @@ The parameter $\tau$ operates on the scale of the beta posterior parameter count
 
 This is a particularly useful benchmark because \citet{Saluz2015CapeCod} report the classical Cape Cod results on the same data. The example therefore provides a direct numerical comparison between the classical Cape Cod estimator, the exact data-driven ODP or Chain Ladder endpoint, and the new Bayesian credibility-weighted blend derived in this paper. It also makes the practical interpretation of the model transparent: the exposure benchmark does not replace the data, but acts as a structured prior that stabilises the more immature origin-year estimates while leaving the mature part of the triangle essentially unchanged.
 
-The exact posterior predictive structure derived in \Cref{sec:predictive} also makes it possible to simulate the full reserve distribution directly. Using the recursive construction based on the posterior beta law for the cumulative origin relativity ratios, the conditional gamma law for the development parameters, and ODP simulation for the future incremental cells, we obtained the predictive summaries shown in Table~\ref{tab:saluz_predictive_summary}. The simulated predictive means and standard deviations are very close to the corresponding analytical values in Tables~\ref{tab:saluz_results} and \ref{tab:saluz_totals}, as they should be. The simulation is useful mainly as a confirmation and visualisation tool. The real advantage of the present framework is that the key reserve moments and covariance structure are already available analytically, without having to rely on long MCMC runs, convergence diagnostics or bootstrap approximations. More importantly, the full predictive distributions show how the credibility bridge acts not only on point estimates but on the whole reserve range. That is precisely the form needed for modern capital applications, since quantiles and tail functionals such as VaR and TVaR can be read directly from the simulated or analytic predictive law.
+The exact posterior predictive structure derived in \Cref{sec:predictive} also makes it possible to simulate the full reserve distribution directly. 
+Using the recursive construction based on the algorithm in Section~\ref{sec:predictive_simulation_general}, we obtained the predictive summaries shown in Table~\ref{tab:saluz_predictive_summary}. The simulated predictive means and standard deviations are very close to the corresponding analytical values in Tables~\ref{tab:saluz_results} and \ref{tab:saluz_totals}, as they should be. The simulation is useful mainly as a confirmation and visualisation tool. The real advantage of the present framework is that the key reserve moments and covariance structure are already available analytically, without having to rely on long MCMC runs, convergence diagnostics or bootstrap approximations. More importantly, the full predictive distributions show how the credibility bridge acts not only on point estimates but on the whole reserve range. That is precisely the form needed for modern capital applications, since quantiles and tail functionals such as VaR and TVaR can be read directly from the simulated predictive distribution.
 
 
 \begin{table}[htbp]
@@ -1116,124 +1233,155 @@ Cape Cod & 6,615,425 & 476,394 & 0.0720 & 6,915,468 & 7,239,631 & 7,412,518 & 7,
 
 \begin{figure}[htbp]
 \centering
-\IfFileExists{saluz_total_reserve_cdfs.png}{\includegraphics[width=0.82\textwidth]{saluz_total_reserve_cdfs.png}}{\fbox{\parbox[c][0.32\textheight][c]{0.78\textwidth}{\centering Placeholder for total reserve CDF figure}}}
+\IfFileExists{saluz_total_reserve_cdfs.svg}{\includesvg[width=0.82\textwidth]{saluz_total_reserve_cdfs}}{\fbox{\parbox[c][0.32\textheight][c]{0.78\textwidth}{\centering Placeholder for total reserve CDF figure}}}
 \caption{Posterior predictive cumulative distribution functions for the total reserve under Chain Ladder, the hierarchical credibility model and Cape Cod.}
 \label{fig:saluz_predictive_cdf}
 \end{figure}
 
 \begin{figure}[htbp]
 \centering
-\IfFileExists{saluz_total_reserve_density.png}{\includegraphics[width=0.82\textwidth]{saluz_total_reserve_density.png}}{\fbox{\parbox[c][0.32\textheight][c]{0.78\textwidth}{\centering Placeholder for total reserve density figure}}}
+\IfFileExists{saluz_total_reserve_density.svg}{\includesvg[width=0.82\textwidth]{saluz_total_reserve_density}}{\fbox{\parbox[c][0.32\textheight][c]{0.78\textwidth}{\centering Placeholder for total reserve density figure}}}
 \caption{Posterior predictive densities for the total reserve under Chain Ladder, the hierarchical credibility model and Cape Cod.}
 \label{fig:saluz_predictive_density}
 \end{figure}
 
-The predictive distributions sharpen the interpretation of the hierarchical fit. The hierarchical curve lies between the Chain Ladder and Cape Cod curves throughout the body of the distribution, with upper quantiles that are also intermediate: the $95\%$ predictive quantile is $7,109,966$ under the hierarchical model, compared with $6,937,079$ for Chain Ladder and $7,412,518$ for Cape Cod. Likewise, the $99\%$ quantile is $7,498,961$, again between the two endpoints. The ordering of the coefficients of variation, $0.0863$ for Chain Ladder, $0.0805$ for the hierarchical model and $0.0720$ for Cape Cod, shows that the prior information reduces relative uncertainty, but only to the extent justified by the data.
 
-The distribution plots are also instructive in a more qualitative sense. The hierarchical posterior predictive distribution is not merely a location shift between the two classical methods. Rather, it preserves the heavier right tail and broader spread associated with the data-driven endpoint more than Cape Cod does, while still damping the most extreme uncertainty generated by the immature origin years. In that sense the model behaves as a genuine credibility-weighted predictive distribution, not only as a compromise in posterior mean reserve.
+\begin{figure}[htbp]
+\centering
+\IfFileExists{saluz_posterior_lr_means.svg}{\includesvg[width=0.82\textwidth]{saluz_posterior_lr_means}}{\fbox{\parbox[c][0.32\textheight][c]{0.78\textwidth}{\centering Placeholder for total reserve density figure}}}
+\caption{Expected posterior loss ratio means for the total reserve under Chain Ladder, the hierarchical credibility model and Cape Cod.}
+\label{fig:saluz_lr_means}
+\end{figure}
+
+The predictive distributions sharpen the interpretation of the hierarchical fit. 
+The hierarchical curve lies between the Chain Ladder and Cape Cod curves throughout the body of the distribution, with upper quantiles that are also intermediate: 
+the $95\%$ predictive quantile is $7,109,966$ under the hierarchical model, compared with $6,937,079$ for Chain Ladder and $7,412,518$ for Cape Cod. 
+Likewise, the $99\%$ quantile is $7,498,961$, again between the two endpoints. The ordering of the coefficients of variation, $0.0863$ for Chain Ladder, $0.0805$ for the hierarchical model and $0.0720$ for Cape Cod, shows that the prior information reduces relative uncertainty, but only to the extent justified by the data.
+
+The distribution plots are also instructive in a more qualitative sense. The hierarchical posterior predictive distribution is not merely a location shift between the two classical methods. 
+Rather, it preserves the heavier right tail and broader spread associated with the data-driven endpoint more than Cape Cod does, while still damping the most extreme uncertainty generated by the immature origin years. In that sense the model behaves as a genuine credibility-weighted predictive distribution, not only as a compromise in posterior mean reserve.
+
+In Figure~\ref{fig:saluz_lr_means} we show the expected posterior loss ratio means, 
+that is $\mathbb{E}[\mu_i \sum_{j=1}^n{\beta_j}/E_i|X]$ under the three models. Note that this
+quantity is not the same as the mean posterior ultimate loss ratio which incorporates the observed claims to date in the ultimate claims. Instead this quantity shows
+the effect of the underlying origin period trends. 
+The hierarchical model again lies between the two endpoints, with a profile showing a clear shrinkage effect from the Chain Ladder toward the constant loss ratio benchmark.
 
 \section{Discussion}\label{sec:discussion}
 
-The results of this paper show that the ODP reserving model possesses a second exact conjugate Bayesian formulation, complementary to the development-side construction obtained under the conventional normalisation $\sum_j\beta_j=1$. Under the alternative normalisation $\mu_1=1$, and after integrating out the development parameters first, the posterior on the origin side factorises into independent beta distributions in cumulative origin relativity ratio coordinates. This yields a complete exact posterior predictive description of future reserve payments when prior information is placed on the origin-period parameters.
+The results of this paper show that the ODP reserving model possesses a second exact conjugate Bayesian formulation, complementary to the development-side construction obtained under the conventional normalisation $\sum_j\beta_j=1$. 
+Under the alternative normalisation $\mu_1=1$, in which the origin period parameters can be interpreted as an index
+of expected claims relative to the first origin period, and after integrating out the development parameters first, 
+the posterior on the origin side factorises into independent beta distributions. This yields a complete exact posterior predictive description of future reserve payments when prior information is placed on the origin-period parameters.
 
 The practical value of this result is substantial. The model admits explicit closed-form reserve means, predictive variances and covariances, including a closed-form covariance matrix for origin-period future-payment totals. It supports a recursive predictive representation built only from elementary distributions, which is computationally stable and easy to implement. Just as importantly, the analytical formulas avoid the fragility and cost of high-dimensional numerical procedures. One does not need to run long MCMC chains, inspect convergence diagnostics or accept bootstrap approximation error in order to obtain the main reserve results. It provides a single coherent ODP framework that contains Chain Ladder, Cape Cod and a continuum of intermediate credibility-weighted methods, together with a clear route to external benchmark loss-ratio information once prior structure on the overall scale is added. In the Saluz example this continuum is not merely conceptual: the fitted hierarchical reserve sits between the two classical endpoints both in mean and in predictive standard deviation, while preserving much of the origin-year structure present in Chain Ladder and damping the most unstable immature-year estimates.
 
-This unification appears, to our knowledge, to be new. Previous Bayesian ODP papers have linked the model to familiar credibility-style reserving methods, but not through an exact closed-form origin-side predictive construction with explicit reserve-uncertainty formulas. Classical uncertainty papers for BF and Cape Cod provide important results, but do not supply a fully Bayesian ODP predictive distribution with origin-side priors in closed form. The present paper therefore helps close a genuine gap between actuarial practice and Bayesian stochastic reserving theory. It also clarifies an important structural point: a benchmark relativity index by itself is enough to produce a Chain Ladder--Cape Cod credibility bridge, but not enough to encode a genuine external prior loss ratio. That requires prior information on the overall development scale as well.
+This unification appears, to our knowledge, to be new. Previous Bayesian ODP papers have linked the model to familiar credibility-style reserving methods, but not through an exact closed-form origin-side predictive construction with explicit reserve-uncertainty formulas. Classical uncertainty papers for BF and Cape Cod provide important results, but do not supply a fully Bayesian ODP predictive distribution with origin-side priors in closed form. The present paper therefore helps close a genuine gap between actuarial practice and Bayesian stochastic reserving theory. 
 
-The framework also has attractive extensions. A practitioner who wishes to specify priors directly on year-on-year loss-ratio changes can do so through a benchmark relativity index $\mu^0$; the cumulative origin relativity ratios are then induced mechanically from that index for computational purposes. One may centre the benchmark relativity index on pricing-based or underwriting-based expected loss-ratio structures instead of exposures, incorporate covariate information into the prior centre, or replace the single shrinkage parameter $\tau$ by a low-dimensional hyperprior family. In that sense the benchmark relativity index is a direct mathematical bridge between pricing and reserving, with the hierarchy supplying principled partial pooling across origin periods as claims experience emerges.
 
-A second extension developed here places a common-rate gamma prior on the development scales. This introduces prior credibility on the overall Cape Cod loss-ratio level while preserving exact tractability through an augmented inverse-generalised-Dirichlet transformation. The resulting posterior mean of the common loss ratio is an exact credibility blend between the internal Cape Cod estimate and an external benchmark loss ratio. This sits naturally alongside the origin-side hierarchy, so that profile credibility and level credibility can be controlled separately within the same model.
+The framework also has attractive extensions. A practitioner who wishes to specify priors directly on year-on-year loss-ratio changes can do so through a prior on the relativity index $\mu$; One may centre the benchmark relativity index on pricing-based or underwriting-based expected loss-ratio structures instead of exposures, incorporate covariate information into the prior centre, or replace the single shrinkage parameter $\tau$ by a low-dimensional hyperprior family. In that sense the benchmark relativity index is a direct mathematical bridge between pricing and reserving, with the hierarchy supplying principled partial pooling across origin periods as claims experience emerges.
 
-In short, the paper shows that origin-side prior information in the ODP model is not only compatible with full Bayesian reserving, but in fact leads to a mathematically elegant and practically powerful exact predictive framework. That framework gives a principled explanation of how Chain Ladder and Cape Cod ought to be blended when the data and prior information point in different directions, and it also shows how external benchmark loss-ratio information can be incorporated without giving up analytical tractability once prior structure is added on the overall scale.
+A second extension developed here places a common-rate gamma prior on the development scales. This introduces prior credibility on the overall Cape Cod loss-ratio level while preserving exact tractability through an augmented inverse-generalised-Dirichlet transformation. The resulting posterior mean of the common loss ratio is an exact credibility blend between the internal Cape Cod estimate and an external benchmark loss ratio. This sits naturally alongside the origin-side hierarchy, 
+so that development credibility and level credibility can be controlled separately within the same model.
+
+\appendix
+
+\section{Gamma loss-ratio construction for the exposure-centred prior}\label{app:gamma_loss_ratio_prior}
+
+This appendix gives one construction of the exposure-centred prior family used in \Cref{subsec:hier_prior}. The construction is not needed for the main calculation, which only uses the beta prior \eqref{eq:xi_prior_tau}, but it explains why the family has a natural loss-ratio interpretation.
+
+Let $e_i=E_i/E_1$ and suppose that, before observing the triangle, the origin-year loss ratios are independent gamma variables
+\begin{equation}
+\Lambda_1\sim\GammaD(1+\tau,\beta),
+\qquad
+\Lambda_i\sim\GammaD(\tau e_i,\beta e_i),
+\qquad i=2,\dots,n,
+\label{eq:lambda_prior_tau_app}
+\end{equation}
+under the shape-rate parameterisation. For $i\ge2$ the prior mean of $\Lambda_i$ is $\tau/\beta$, and its coefficient of variation is $(\tau e_i)^{-1/2}$. Thus the prior loss-ratio mean is common across origin periods, while the prior dispersion is inversely proportional to the square root of exposure.
+
+Define relative expected losses by
+\begin{equation}
+h_i:=e_i\Lambda_i,
+\qquad i=1,\dots,n.
+\label{eq:h_i_def_app}
+\end{equation}
+Then
+\begin{equation}
+h_1\sim\GammaD(1+\tau,\beta),
+\qquad
+h_i\sim\GammaD(\tau e_i,\beta),
+\qquad i=2,\dots,n.
+\label{eq:h_i_gamma_tau_app}
+\end{equation}
+Hence, after normalising by their sum,
+\begin{equation}
+\left(\frac{h_1}{\sum_{r=1}^{n}h_r},\dots,\frac{h_n}{\sum_{r=1}^{n}h_r}\right)
+\sim
+\Dir(1+\tau,\tau e_2,\dots,\tau e_n).
+\label{eq:q_dirichlet_app}
+\end{equation}
+Under the origin-side normalisation $\mu_1=1$,
+\begin{equation}
+\mu_i=\frac{h_i}{h_1},
+\qquad i=2,\dots,n.
+\label{eq:mu_from_h_app}
+\end{equation}
+The standard stick-breaking factorisation of the Dirichlet distribution therefore gives
+\begin{equation}
+\xi_i
+=
+\frac{\sum_{r=1}^{i-1}h_r}{\sum_{r=1}^{i}h_r}
+\sim
+\BetaD\!\left(1+\tau\sum_{r=1}^{i-1}e_r,\tau e_i\right),
+\qquad i=2,\dots,n,
+\label{eq:xi_prior_tau_app}
+\end{equation}
+independently over $i$, which is exactly \eqref{eq:xi_prior_tau}. Also, since $h_i$ is independent of $h_1$,
+\begin{equation}
+\E[\mu_i\mid\tau]
+=
+\E[h_i]\E[h_1^{-1}]
+=
+\frac{\tau e_i}{\beta}\cdot\frac{\beta}{\tau}
+=e_i,
+\qquad i=2,\dots,n.
+\label{eq:mu_mean_tau_app}
+\end{equation}
+This proves the exposure-centred property used in the main text.
+
 
 \begin{thebibliography}{99}
-
-\bibitem[Clark(2016)]{Clark2016BayesianDevelopment}
-Clark, D. R. (2016).
-\newblock Introduction to Bayesian loss development.
-\newblock \emph{CAS E-Forum}, Summer 2016.
-
-\bibitem[England and Verrall(2006)]{EnglandVerrall2006}
-England, P. D. and Verrall, R. J. (2006).
-\newblock Predictive distributions of outstanding liabilities in general insurance.
-\newblock \emph{Annals of Actuarial Science}, 1(2), 221--270.
-
-\bibitem[England et~al.(2012)England, Verrall, and W\"uthrich]{EnglandVerrallWuthrich2012}
-England, P. D., Verrall, R. J. and W\"uthrich, M. V. (2012).
-\newblock Bayesian over-dispersed Poisson model and the Bornhuetter--Ferguson claims reserving method.
-\newblock \emph{Annals of Actuarial Science}, 6(2), 258--283.
-
-\bibitem[Gigante et~al.(2013)Gigante, Picech, and Sigalotti]{GigantePicechSigalotti2013}
-Gigante, P., Picech, L. and Sigalotti, L. (2013).
-\newblock Claims reserving in the hierarchical generalized linear model framework.
-\newblock \emph{Insurance: Mathematics and Economics}, 52(2), 381--390.
-
-\bibitem[Gisler and W\"uthrich(2008)]{GislerWuthrich2008}
-Gisler, A. and W\"uthrich, M. V. (2008).
-\newblock Credibility for the chain ladder reserving method.
-\newblock \emph{ASTIN Bulletin}, 38(2), 565--600.
-
-\bibitem[Mack(1993)]{Mack1993}
-Mack, T. (1993).
-\newblock Distribution-free calculation of the standard error of chain ladder reserve estimates.
-\newblock \emph{ASTIN Bulletin}, 23(2), 213--225.
-
-\bibitem[Mack(2008)]{Mack2008BF}
-Mack, T. (2008).
-\newblock The prediction error of Bornhuetter--Ferguson.
-\newblock \emph{ASTIN Bulletin}, 38(1), 87--103.
-
-\bibitem[Norman(2025)]{Norman2025ODP}
-Norman, J. P. (2025).
-\newblock The predictive distribution of the over-dispersed Poisson claims reserving model.
-\newblock SSRN working paper, revised December 1, 2025.
 
 \bibitem[Renshaw and Verrall(1998)]{RenshawVerrall1998}
 Renshaw, A. E. and Verrall, R. J. (1998).
 \newblock A stochastic model underlying the chain-ladder technique.
 \newblock \emph{British Actuarial Journal}, 4(4), 903--923.
 
-\bibitem[Saluz(2015)]{Saluz2015CapeCod}
-Saluz, A. (2015).
-\newblock Prediction uncertainties in the Cape Cod reserving method.
-\newblock \emph{Annals of Actuarial Science}, 9(2), 239--263.
-
-\bibitem[Saluz et~al.(2011)Saluz, Gisler, and W\"uthrich]{SaluzGislerWuthrich2011}
-Saluz, A., Gisler, A. and W\"uthrich, M. V. (2011).
-\newblock Development pattern and prediction error for the stochastic Bornhuetter--Ferguson claims reserving method.
-\newblock \emph{ASTIN Bulletin}, 41(2), 279--313.
-
-\bibitem[Taylor(2015)]{Taylor2015BayesianCL}
-Taylor, G. (2015).
-\newblock Bayesian chain ladder models.
-\newblock \emph{ASTIN Bulletin}, 45(1), 75--99.
-
-\bibitem[Taylor(2019)]{Taylor2019CapeCod}
-Taylor, G. (2019).
-\newblock A Cape Cod model for the exponential dispersion family.
-\newblock \emph{Insurance: Mathematics and Economics}, 85, 126--137.
-
-\bibitem[W\"uthrich(2007)]{Wuthrich2007}
-W\"uthrich, M. V. (2007).
-\newblock Using a Bayesian approach for claims reserving.
-\newblock \emph{Variance}, 1(2), 292--301.
-
-\bibitem[W\"uthrich(2013)]{Wuthrich2013}
-W\"uthrich, M. V. (2013).
-\newblock Challenges with non-informative gamma priors in the Bayesian over-dispersed Poisson reserving model.
-\newblock \emph{Insurance: Mathematics and Economics}, 52(2), 352--358.
-
-
 \bibitem[England and Verrall(2002)]{EnglandVerrall2002}
 England, P. D. and Verrall, R. J. (2002).
 \newblock Stochastic claims reserving in general insurance.
 \newblock {\em British Actuarial Journal}, 8(3), 443--518.
 
+\bibitem[England and Verrall(2006)]{EnglandVerrall2006}
+England, P. D. and Verrall, R. J. (2006).
+\newblock Predictive distributions of outstanding liabilities in general insurance.
+\newblock \emph{Annals of Actuarial Science}, 1(2), 221--270.
+
+\bibitem[Mack(1993)]{Mack1993}
+Mack, T. (1993).
+\newblock Distribution-free calculation of the standard error of chain ladder reserve estimates.
+\newblock \emph{ASTIN Bulletin}, 23(2), 213--225.
 
 \bibitem[Ntzoufras and Dellaportas(2002)]{NtzoufrasDellaportas2002}
 Ntzoufras, I. and Dellaportas, P. (2002).
 \newblock Bayesian modelling of outstanding liabilities incorporating claim count uncertainty.
 \newblock {\em North American Actuarial Journal}, 6(1), 113--128.
+
+\bibitem[Verrall(2004)]{Verrall2004BF}
+Verrall, R. J. (2004).
+\newblock A Bayesian generalized linear model for the Bornhuetter--Ferguson method of claims reserving.
+\newblock {\em North American Actuarial Journal}, 8(3), 67--89.
 
 \bibitem[Verrall and England(2005)]{VerrallEngland2005}
 Verrall, R. J. and England, P. D. (2005).
@@ -1245,10 +1393,70 @@ Verrall, R. J. (2007).
 \newblock Obtaining predictive distributions for reserves which incorporate expert opinion.
 \newblock \emph{Variance}, 1(2), 248--265.
 
-\bibitem[Verrall(2004)]{Verrall2004BF}
-Verrall, R. J. (2004).
-\newblock A Bayesian generalized linear model for the Bornhuetter--Ferguson method of claims reserving.
-\newblock {\em North American Actuarial Journal}, 8(3), 67--89.
+\bibitem[Taylor(2015)]{Taylor2015BayesianCL}
+Taylor, G. (2015).
+\newblock Bayesian chain ladder models.
+\newblock \emph{ASTIN Bulletin}, 45(1), 75--99.
+
+\bibitem[W\"uthrich(2007)]{Wuthrich2007}
+W\"uthrich, M. V. (2007).
+\newblock Using a Bayesian approach for claims reserving.
+\newblock \emph{Variance}, 1(2), 292--301.
+
+\bibitem[Gisler and W\"uthrich(2008)]{GislerWuthrich2008}
+Gisler, A. and W\"uthrich, M. V. (2008).
+\newblock Credibility for the chain ladder reserving method.
+\newblock \emph{ASTIN Bulletin}, 38(2), 565--600.
+
+\bibitem[England et~al.(2012)England, Verrall, and W\"uthrich]{EnglandVerrallWuthrich2012}
+England, P. D., Verrall, R. J. and W\"uthrich, M. V. (2012).
+\newblock Bayesian over-dispersed Poisson model and the Bornhuetter--Ferguson claims reserving method.
+\newblock \emph{Annals of Actuarial Science}, 6(2), 258--283.
+
+\bibitem[Norman(2025)]{Norman2025ODP}
+Norman, J. P. (2025).
+\newblock The predictive distribution of the over-dispersed Poisson claims reserving model.
+\newblock SSRN working paper, revised December 1, 2025.
+
+\bibitem[Saluz(2015)]{Saluz2015CapeCod}
+Saluz, A. (2015).
+\newblock Prediction uncertainties in the Cape Cod reserving method.
+\newblock \emph{Annals of Actuarial Science}, 9(2), 239--263.
+
+\bibitem[Mack(2008)]{Mack2008BF}
+Mack, T. (2008).
+\newblock The prediction error of Bornhuetter--Ferguson.
+\newblock \emph{ASTIN Bulletin}, 38(1), 87--103.
+
+\bibitem[Saluz et~al.(2011)Saluz, Gisler, and W\"uthrich]{SaluzGislerWuthrich2011}
+Saluz, A., Gisler, A. and W\"uthrich, M. V. (2011).
+\newblock Development pattern and prediction error for the stochastic Bornhuetter--Ferguson claims reserving method.
+\newblock \emph{ASTIN Bulletin}, 41(2), 279--313.
+
+\bibitem[Taylor(2019)]{Taylor2019CapeCod}
+Taylor, G. (2019).
+\newblock A Cape Cod model for the exponential dispersion family.
+\newblock \emph{Insurance: Mathematics and Economics}, 85, 126--137.
+
+\bibitem[Gigante et~al.(2013)Gigante, Picech, and Sigalotti]{GigantePicechSigalotti2013}
+Gigante, P., Picech, L. and Sigalotti, L. (2013).
+\newblock Claims reserving in the hierarchical generalized linear model framework.
+\newblock \emph{Insurance: Mathematics and Economics}, 52(2), 381--390.
+
+\bibitem[Clark(2016)]{Clark2016BayesianDevelopment}
+Clark, D. R. (2016).
+\newblock Introduction to Bayesian loss development.
+\newblock \emph{CAS E-Forum}, Summer 2016.
+
+\bibitem[Lingappaiah(1976)]{Lingappaiah1976}
+Lingappaiah, G. S. (1976).
+\newblock On the generalized inverted Dirichlet distribution.
+\newblock \emph{Demonstratio Mathematica}, 9(3), 423--433.
+
+\bibitem[W\"uthrich(2013)]{Wuthrich2013}
+W\"uthrich, M. V. (2013).
+\newblock Challenges with non-informative gamma priors in the Bayesian over-dispersed Poisson reserving model.
+\newblock \emph{Insurance: Mathematics and Economics}, 52(2), 352--358.
 
 \end{thebibliography}
 
