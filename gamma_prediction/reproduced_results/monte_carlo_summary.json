@@ -1,0 +1,8 @@
+{
+  "reps_per_cell": 10000000,
+  "cells": 28,
+  "total_augmented_samples": 280000000,
+  "mean_U": 0.500009682434292,
+  "var_U": 0.0833285139675356,
+  "max_abs_binomial_z": 2.6989817547645356
+}

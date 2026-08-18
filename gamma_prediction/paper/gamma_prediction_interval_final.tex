@@ -1,0 +1,1410 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs,array}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{caption}
+\usepackage{placeins}
+\usepackage{xcolor}
+
+\hypersetup{colorlinks=true,linkcolor=black,citecolor=black,urlcolor=blue}
+\Urlmuskip=0mu plus 1mu
+\setlist{nosep}
+\captionsetup{font=small,labelfont=bf}
+\allowdisplaybreaks
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\E}{\mathbb E}
+\newcommand{\Pp}{\mathbb P}
+\newcommand{\ind}{\mathbf 1}
+\newcommand{\dd}{\,\mathrm d}
+\newcommand{\Dir}{\operatorname{Dirichlet}}
+\newcommand{\Bet}{\operatorname{Beta}}
+
+\title{\bf Exact Frequentist Prediction Intervals for a Gamma Distribution\\[2pt]
+with Unknown Shape and Scale}
+\author{James P. Norman\thanks{Email: \href{mailto:james.norman@proteusllp.com}{james.norman@proteusllp.com}; homepage:\href{https://proteusllp.com}{proteusllp.com}.}\\Proteus Consulting LLP, Cambridge, UK}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This paper derives exact frequentist one-sided prediction intervals for a future observation from a two-parameter Gamma 
+distribution when both the shape and scale parameters are unknown. The construction augments the data with a candidate future observation and then conditions on the resulting augmented log-product statistic. 
+The conditional distribution of the proportion of the future observation in the augmented total is shown to be free of both unknown parameters.
+
+The one-sided prediction interval has the form
+\[
+ 0<Y\le M_{n,p}(D_n)\bar X,
+ \qquad
+ D_n=\log\bar X-\frac1n\sum_{i=1}^n\log X_i,
+\]
+where the multiplier $M_{n,p}(D_n)$ depends only on the sample size $n$, the nominal coverage level $p$ and 
+a scale-free measure of the observed dispersion $D_n$. 
+We show that the prediction set is an interval with a unique finite upper prediction limit.
+
+The calculation depends on a one-dimensional density $\ell_m$, related by a logarithmic transformation to the 
+geometric-to-arithmetic mean ratio distribution studied by Glaser. We numerically evaluate the prediction intervals 
+using convergent series representations for small and moderate sample sizes and a saddlepoint-centred contour inversion for larger samples. Tables of exact lower and upper multipliers are provided for rapid lookup and interpolation, with exact scalar inversion available where required.
+Large-scale Monte Carlo simulation checks the numerical implementation over a wide range of sample sizes, shape parameters and prediction probabilities.
+
+We illustrate the method using a small, well-known data set of aircraft air-conditioning failures from reliability theory. A Python implementation is available.
+\end{abstract}
+
+\noindent\textbf{Keywords:} conditional inference; exact prediction; Gamma distribution; parameter uncertainty; prediction interval; sufficient statistic.
+
+\section{Introduction}
+
+The Gamma distribution is one of the most commonly used models for positive, skewed data. It is a two-parameter family, with shape and scale parameters $\alpha$ and $\theta$, and density
+\begin{equation}
+ f(x;\alpha,\theta)
+ =\frac{x^{\alpha-1}\exp(-x/\theta)}{\Gamma(\alpha)\theta^\alpha},
+ \qquad x>0.
+ \label{eq:intro_gamma_density}
+\end{equation}
+Gamma-distributed random variables arise in a wide range of applications, including hydrology, meteorology, climatology, insurance, reliability and queueing. Monotone transformations of the Gamma distribution, such as the log-Gamma, inverse-Gamma and square-root Gamma, are also widely used. Exact prediction intervals for the Gamma distribution therefore transfer directly to these transformed distributions.
+
+The prediction interval problem for the Gamma distribution has been studied for many decades. 
+Given observations $X_1,\ldots,X_n$, the objective is to construct a set for a future independent 
+observation $Y$ from the same distribution. For a prediction set $C(X_1,\ldots,X_n)$ with nominal 
+coverage $1-\gamma$, the frequentist requirement is
+\begin{equation}
+ \Pp_{\alpha,\theta}(Y\in C(X_1,\ldots,X_n))=1-\gamma
+ \qquad\text{for every }\alpha,\theta>0.
+ \label{eq:coverage_requirement}
+\end{equation}
+No generally applicable prediction interval with exact finite-sample coverage for this two-parameter 
+problem appears to be available. Approximate methods can work well in large samples, 
+but may be least reliable when the sample is small, the distribution is strongly skewed,
+or a high prediction quantile is required. Jewson and Sweeting (2026), for example, describe prediction for the Gamma distribution as an unresolved problem in the context of parameter uncertainty \cite{Jewson2026}.
+
+We focus here on frequentist prediction intervals, rather than Bayesian, fiducial or structural prediction. 
+Those approaches are well developed for the Gamma distribution and have their own applications, 
+but they do not in general have the exact repeated-sampling coverage property in \eqref{eq:coverage_requirement}. 
+For a frequentist procedure, repeated-sampling coverage is a natural benchmark.
+The intervals constructed here have the stated nominal coverage for every value of the underlying shape and 
+scale parameters, not merely asymptotically or on average under a prior distribution.
+
+If the shape parameter is known, exact prediction intervals can be obtained by standard pivotal arguments. 
+If both shape and scale are unknown, there is no obvious scalar pivot containing a future observation whose 
+distribution is free of both nuisance parameters. Existing practical approaches include transformations, 
+normal approximations, generalised confidence quantities and fiducial methods; see,
+for example, Krishnamoorthy, Mathew and Mukherjee \cite{Krishnamoorthy2008}, Wang, Hannig and Iyer \cite{Wang2012}, 
+and the review by Tian, Nordman and Meeker \cite{Tian2022}.
+
+In this paper the difficulty is addressed by using the sufficient statistic of the augmented sample, which includes the future observation. A candidate value $y$ is appended to the observed sample; after eliminating scale by normalisation, inference is conditioned on the scale-free log-product component of that statistic.
+Faulkenberry \cite{Faulkenberry1973} proposed conditioning a future observation on a sufficient statistic formed from the observed sample together with the future observation, while Dunsmore \cite{Dunsmore1976} showed that the existence and form of the resulting prediction interval require separate consideration. The construction here gives an explicit solution for the two-parameter Gamma family.
+
+The shape parameter is kept general throughout the derivation. After normalisation by the augmented total,
+the $n+1$ observations have a symmetric Dirichlet distribution with common parameter $\alpha$, 
+so the scale parameter disappears immediately. The future share has a $\operatorname{Beta}(\alpha,n\alpha)$ 
+distribution and, conditional on that share, the remaining proportions have a 
+symmetric $\operatorname{Dirichlet}(\alpha,\ldots,\alpha)$ distribution.
+Combining these two pieces shows that all dependence on $\alpha$ cancels after conditioning on the augmented log-product statistic. Thus neither unknown parameter remains in the conditional distribution of the future share.
+
+The calculation is related to the exact distribution of the ratio of the geometric and arithmetic 
+means in Gamma samples. Glaser \cite{Glaser1976} derived the density of this ratio, with related 
+developments by Nandi \cite{Nandi1980} and Keating, Glaser and Ketchum \cite{Keating1990}. 
+The statistic used below is a logarithmic transformation of the same ratio, 
+and the corresponding density $\ell_m$ provides the one-dimensional distributional 
+quantity required in the present construction. 
+The predictive construction includes the future observation before conditioning and evaluates the conditional distribution function of its share of the augmented total.
+
+The resulting one-sided upper prediction interval has the simple form
+\begin{equation}
+ 0<Y\le M_{n,p}(D_n)\bar X,
+ \qquad
+ D_n=\log\bar X-\frac1n\sum_{i=1}^n\log X_i.
+ \label{eq:intro_interval_form}
+\end{equation}
+Thus the prediction limit is a scalar multiple of the sample mean, with the multiplier depending only on sample size, 
+coverage level and observed scale-free dispersion. No estimate of either $\alpha$ or $\theta$ appears 
+in the exact prediction limit. This form is convenient in applications because the multiplier 
+can be tabulated or interpolated as a function of only $n$, $p$ and $D_n$.
+
+Exact calibration follows from the conditional probability integral transform. 
+We then prove that the conditional quantile level is strictly increasing in the candidate future observation 
+for every $n\ge2$. This gives a unique one-sided prediction limit and, by combining lower and upper conditional quantiles, two-sided prediction intervals.
+
+The exact construction requires only the density $\ell_m$. We derive two complementary convergent series representations: a Glaser-type series near the origin and an exponential-polynomial residue series for moderate and large arguments. 
+The derivations are given explicitly in Appendix~\ref{app:density_series}. Quadrature and inversion on the 
+logarithmic multiplier scale then give a stable calculation of the prediction quantiles. The details of the numerical implementation 
+are collected in Appendix~\ref{app:numerical_details}. 
+
+Large-sample, large-dispersion and extreme-quantile approximations are also derived. We provide tables of exact lower and upper multipliers and examine numerical coverage in a large simulation study.
+
+Section~2 derives the exact conditional law under general $\alpha$. 
+Section~3 gives the prediction interval and its scale-equivariant form, together with the transformation result. 
+Section~4 gives the calculation in terms of $\ell_m$, with the series derivations and 
+numerical details deferred to the appendices. 
+Section~5 gives the asymptotic results. 
+Section~6 tabulates exact lower and upper prediction intervals, 
+Section~7 reports the numerical validation, and Section~8 gives a worked reliability example with a comparison to the normal-based method of Krishnamoorthy, Mathew and Mukherjee \cite{Krishnamoorthy2008}.
+Section~9 concludes with a discussion of the results and their implications.
+
+\section{The exact conditional construction}
+\subsection{Gamma and Dirichlet reduction}
+
+Let $X_1,\ldots,X_m$ be independent observations from the Gamma model in \eqref{eq:intro_gamma_density}. For a sample of size $m$, define
+\begin{equation}
+ S_m=\sum_{i=1}^m X_i,
+ \qquad
+ D_m=\log\!\left(\frac{S_m}{m}\right)-\frac1m\sum_{i=1}^m\log X_i,
+ \qquad
+ T_m=mD_m.
+ \label{eq:statistics}
+\end{equation}
+Thus $D_m$ denotes the random dispersion statistic; when the observed sample size is $n$, its realised value will be denoted by $d$. The arithmetic--geometric mean inequality gives $D_m\ge0$, with strict inequality almost surely for $m\ge2$ under the continuous Gamma model.
+If $P_i=X_i/S_m$, Gamma-Dirichlet factorisation gives
+\begin{equation}
+ (P_1,\ldots,P_m)\sim\Dir_m(\alpha,\ldots,\alpha),
+ \qquad
+ (P_1,\ldots,P_m)\perp S_m,
+ \label{eq:dirichlet_factor}
+\end{equation}
+and
+\begin{equation}
+ T_m=-m\log m-\sum_{i=1}^m\log P_i
+     =-\log\!\left(m^m\prod_{i=1}^m P_i\right)\ge0.
+ \label{eq:T_product}
+\end{equation}
+Thus $T_m$ is scale-free. It contains the shape information carried by the relative composition of the sample, while $S_m$ carries scale conditional on the shape.
+
+For each $\alpha>0$, let $\ell_{m,\alpha}$ denote the density of $T_m$ under $\Dir_m(\alpha,\ldots,\alpha)$, and write
+\begin{equation}
+ \ell_m(t)=\ell_{m,1}(t).
+ \label{eq:ell_definition}
+\end{equation}
+Since
+\[
+ T_m=-m\log\!\left(
+ \frac{(\prod_{i=1}^m X_i)^{1/m}}{S_m/m}
+ \right),
+\]
+$\ell_m$ is the density of a logarithmic transformation of the ratio of the geometric mean to the arithmetic mean whose distribution was derived by Glaser \cite{Glaser1976}.
+
+\subsection{The general-shape tilt}
+
+\begin{lemma}[Exponential tilt of the log-product statistic]
+\label{lem:alpha_tilt}
+For every integer $m\ge2$ and every $\alpha>0$,
+\begin{equation}
+ \ell_{m,\alpha}(t)
+ =\kappa_m(\alpha)e^{-(\alpha-1)t}\ell_m(t),
+ \qquad t>0,
+ \label{eq:alpha_tilt}
+\end{equation}
+where
+\begin{equation}
+ \kappa_m(\alpha)
+ =\frac{\Gamma(m\alpha)}{\Gamma(\alpha)^m\Gamma(m)}
+   m^{-m(\alpha-1)}.
+ \label{eq:alpha_tilt_const}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+The density ratio of $\Dir_m(\alpha,\ldots,\alpha)$ to $\Dir_m(1,\ldots,1)$ is
+\[
+ \frac{\Gamma(m\alpha)}{\Gamma(\alpha)^m\Gamma(m)}
+ \prod_{i=1}^m p_i^{\alpha-1}.
+\]
+By \eqref{eq:T_product}, on the set $T_m=t$,
+\[
+ \prod_{i=1}^m p_i=m^{-m}e^{-t}.
+\]
+The density ratio is therefore constant over each level set of $T_m$ and equals
+$\kappa_m(\alpha)e^{-(\alpha-1)t}$. This gives \eqref{eq:alpha_tilt}.
+\end{proof}
+
+Conditional on $T_m=t$, the lemma shows that the distribution of the normalised vector is independent of $\alpha$. We next derive the conditional law of the future share explicitly.
+
+\subsection{The future share under general shape}
+
+Let $X_1,\ldots,X_n$ be observed and let $Y=X_{n+1}$ be one independent future observation. Write
+\begin{equation}
+ Q=\frac{Y}{S_n+Y},
+ \qquad
+ R_i=\frac{X_i}{S_n},\quad i=1,\ldots,n.
+ \label{eq:Q_R}
+\end{equation}
+Under the augmented symmetric Dirichlet law with general shape $\alpha$,
+\begin{equation}
+ Q\sim\Bet(\alpha,n\alpha),
+ \qquad
+ (R_1,\ldots,R_n)\sim\Dir_n(\alpha,\ldots,\alpha),
+ \qquad
+ Q\perp(R_1,\ldots,R_n).
+ \label{eq:general_alpha_decomp}
+\end{equation}
+Define
+\begin{equation}
+ J_n(q)
+ =n\log n-(n+1)\log(n+1)-\log q-n\log(1-q).
+ \label{eq:J}
+\end{equation}
+Direct substitution in \eqref{eq:T_product} gives the exact identity
+\begin{equation}
+ T_{n+1}
+ =-n\log n-\sum_{i=1}^n\log R_i+J_n(Q).
+ \label{eq:T_aug_identity}
+\end{equation}
+The first two terms on the right-hand side, taken together, have density $\ell_{n,\alpha}$ and are independent of $Q$.
+The function $J_n$ is non-negative, has its unique minimum zero at $q=1/(n+1)$, and diverges as $q\downarrow0$ or $q\uparrow1$.
+
+The $\Bet(\alpha,n\alpha)$ density is
+\begin{equation}
+ \frac{\Gamma((n+1)\alpha)}{\Gamma(\alpha)\Gamma(n\alpha)}
+   q^{\alpha-1}(1-q)^{n\alpha-1}.
+ \label{eq:beta_general}
+\end{equation}
+Combining \eqref{eq:T_aug_identity}, \eqref{eq:alpha_tilt} and \eqref{eq:beta_general}, the joint density of $(Q,T_{n+1})$ is
+\begin{align}
+ f_\alpha(q,t)
+ &=\frac{\Gamma((n+1)\alpha)}{\Gamma(\alpha)\Gamma(n\alpha)}
+   q^{\alpha-1}(1-q)^{n\alpha-1}
+  \ell_{n,\alpha}(t-J_n(q))
+  \ind(J_n(q)\le t) \notag\\
+ &\propto
+   q^{\alpha-1}(1-q)^{n\alpha-1}
+   e^{(\alpha-1)J_n(q)}
+  \ell_n(t-J_n(q))
+  \ind(J_n(q)\le t),
+ \label{eq:joint_before_cancel}
+\end{align}
+where the proportionality suppresses only a factor depending on $t$ and $\alpha$, not on $q$.
+
+Now
+\begin{equation}
+ e^{J_n(q)}
+ =\frac{n^n}{(n+1)^{n+1}q(1-q)^n}.
+ \label{eq:eJ}
+\end{equation}
+Hence
+\begin{align}
+ q^{\alpha-1}(1-q)^{n\alpha-1}e^{(\alpha-1)J_n(q)}
+ &=\left\{\frac{n^n}{(n+1)^{n+1}}\right\}^{\alpha-1}
+   (1-q)^{n-1}.
+ \label{eq:alpha_cancel}
+\end{align}
+All $q$-dependence on $\alpha$ has therefore cancelled. At fixed $t$,
+\begin{equation}
+ f_\alpha(q,t)
+ \propto (1-q)^{n-1}
+  \ell_n(t-J_n(q))
+  \ind(J_n(q)\le t),
+ \label{eq:joint_after_cancel}
+\end{equation}
+where the omitted factor depends on $\alpha$ and $t$, but not on $q$.
+
+\begin{theorem}[Parameter-free augmented conditional law]
+\label{thm:conditional_law}
+For every $\alpha,\theta>0$ and $n\ge2$, the conditional density of
+\[
+ Q=\frac{Y}{S_n+Y}
+\]
+given $T_{n+1}=t$, for $t>0$, is independent of both unknown Gamma parameters. It is
+\begin{equation}
+ f_n(q\mid t)
+ =\frac{n(1-q)^{n-1}\ell_n(t-J_n(q))}
+        {\ell_{n+1}(t)}
+   \ind(J_n(q)\le t).
+ \label{eq:conditional_density}
+\end{equation}
+Equivalently, its distribution function is
+\begin{equation}
+ F_n(q\mid t)
+ =\frac{\displaystyle\int_0^q n(1-u)^{n-1}
+               \ell_n(t-J_n(u))\dd u}
+        {\displaystyle\int_0^1 n(1-u)^{n-1}
+               \ell_n(t-J_n(u))\dd u}.
+ \label{eq:conditional_cdf}
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+Equation \eqref{eq:joint_after_cancel} shows directly that, at fixed $t$, the factor involving $\alpha$ does not depend on $q$. The marginal density of $T_{n+1}$ is, by Lemma~\ref{lem:alpha_tilt},
+\[
+ \ell_{n+1,\alpha}(t)
+ =\kappa_{n+1}(\alpha)e^{-(\alpha-1)t}\ell_{n+1}(t).
+\]
+Restoring the common factor from the preceding calculation and using $\Gamma(n+1)=n\Gamma(n)$, division by this marginal density gives \eqref{eq:conditional_density}; integration gives \eqref{eq:conditional_cdf}. The scale parameter $\theta$ has already disappeared because $Q$ and $T_{n+1}$ depend only on normalised proportions.
+\end{proof}
+
+\subsection{The exact predictive quantile}
+
+For a candidate future value $y>0$, put
+\begin{equation}
+ q(y)=\frac{y}{S_n+y}.
+ \label{eq:q_candidate}
+\end{equation}
+If the observed dispersion is $D_n=d$, then the augmented statistic corresponding to that candidate is
+\begin{equation}
+ T_{n+1}(y)=nd+J_n(q(y)).
+ \label{eq:t_candidate}
+\end{equation}
+The conditioning value therefore changes with the candidate. Define
+\begin{equation}
+ G_{n,d}(q)=F_n(q\mid nd+J_n(q)).
+ \label{eq:G}
+\end{equation}
+
+\begin{theorem}[Exact conditional calibration]
+\label{thm:pit}
+Let $Y$ be the actual future observation and $Q=Y/(S_n+Y)$. Then
+\begin{equation}
+ U=F_n(Q\mid T_{n+1})=G_{n,D_n}(Q)\sim\operatorname{Uniform}(0,1),
+ \label{eq:uniform_pit}
+\end{equation}
+conditionally on $T_{n+1}$ and hence also unconditionally, for every $\alpha,\theta>0$.
+\end{theorem}
+
+\begin{proof}
+For each fixed value $T_{n+1}=t$, Theorem~\ref{thm:conditional_law} gives the true continuous conditional distribution function of $Q$. The conditional probability integral transform is therefore Uniform$(0,1)$. Integrating over $T_{n+1}$ preserves that distribution.
+\end{proof}
+
+Consequently, for $0\le a<b\le1$,
+\begin{equation}
+ \mathcal C_{a,b}
+ =\left\{y>0:
+ a\le G_{n,D_n}\!\left(\frac{y}{S_n+y}\right)\le b\right\}
+ \label{eq:exact_set}
+\end{equation}
+has exact coverage $b-a$ for every positive shape and scale. No monotonicity assumption is needed for this coverage result. The interval form is established separately below.
+
+\section{Prediction intervals and scale equivariance}
+
+\begin{theorem}[Monotone inversion]
+\label{thm:monotonicity}
+For every $n\ge2$ and every $d>0$, the map
+\[
+ q\longmapsto G_{n,d}(q)
+\]
+is strictly increasing on $(0,1)$, with limits $0$ as $q\downarrow0$ and $1$ as $q\uparrow1$.
+\end{theorem}
+
+A proof is given in Appendix~\ref{app:monotonicity}. Theorem~\ref{thm:pit} gives exact coverage of the set \eqref{eq:exact_set}; Theorem~\ref{thm:monotonicity} shows that this set is an ordinary interval.
+
+For fixed $n$ and $d$, let $q_p$ be the unique solution of
+\begin{equation}
+ G_{n,d}(q_p)=p,
+ \qquad 0<p<1.
+ \label{eq:q_quantile}
+\end{equation}
+Since
+\begin{equation}
+ q=\frac{y}{S_n+y}
+   =\frac{y/\bar X}{n+y/\bar X},
+ \label{eq:q_z}
+\end{equation}
+the corresponding prediction multiplier is
+\begin{equation}
+ M_{n,p}(d)=\frac{nq_p}{1-q_p},
+ \label{eq:multiplier}
+\end{equation}
+and the exact $p$th prediction quantile is
+\begin{equation}
+ y_p=\bar X\,M_{n,p}(D_n).
+ \label{eq:quantile_multiplier}
+\end{equation}
+Thus a one-sided upper interval of coverage $p$ is
+\begin{equation}
+ 0<Y\le \bar X\,M_{n,p}(D_n),
+ \label{eq:upper_interval}
+\end{equation}
+and a one-sided lower interval of coverage $1-p$ is
+\begin{equation}
+ Y\ge \bar X\,M_{n,p}(D_n).
+ \label{eq:lower_interval}
+\end{equation}
+An equal-tail interval of coverage $1-\gamma$ uses $p=\gamma/2$ and $p=1-\gamma/2$.
+
+Equation \eqref{eq:quantile_multiplier} is the form used in practice. No estimate of $\alpha$ or $\theta$ enters the exact prediction limit. The sample mean determines scale; all remaining sample information enters through the single dimensionless statistic $D_n$.
+
+\subsection{Known monotone transformations}
+
+\begin{corollary}[Transformation equivariance]
+Let $g:(0,\infty)\to I$ be a fixed, known, continuous and strictly monotone function. If $y_p$ is the exact Gamma prediction quantile, then the exact quantile for $Z=g(Y)$ is
+\begin{equation}
+ z_p=\begin{cases}
+ g(y_p),&g\text{ increasing},\\
+ g(y_{1-p}),&g\text{ decreasing}.
+ \end{cases}
+ \label{eq:transformation}
+\end{equation}
+\end{corollary}
+
+This covers log-Gamma variables, reciprocals, inverse-Gamma variables generated by $1/Y$, and fixed positive or negative powers. The transformation itself must be specified independently of the sample. Estimating an additional transformation parameter from the same data requires further inference.
+
+\section{The density \texorpdfstring{$\ell_m$}{ell-m} and calculation of prediction quantiles}
+\label{sec:numerics}
+
+The only non-standard distribution required for the calculation is $\ell_m$. From \eqref{eq:T_product},
+\[
+ T_m=-m\log\!\left(
+ \frac{(\prod_{i=1}^m X_i)^{1/m}}{S_m/m}
+ \right).
+\]
+Thus $\ell_m$ is directly related, by a one-to-one logarithmic transformation, to the ratio of the geometric mean to the arithmetic mean studied by Glaser \cite{Glaser1976}.
+
+Its Laplace transform is
+\begin{align}
+ \mathcal L_m(z)
+ &=\E(e^{-zT_m}) \notag\\
+ &=m^{mz}\frac{\Gamma(m)\Gamma(1+z)^m}{\Gamma(m(1+z))} \notag\\
+ &=\prod_{j=1}^{m-1}
+   \frac{\Gamma(1+j/m)\Gamma(1+z)}{\Gamma(1+z+j/m)}.
+ \label{eq:laplace_transform}
+\end{align}
+The final product form in \eqref{eq:laplace_transform} follows from Gauss's multiplication formula for the Gamma function. Equivalently,
+\begin{equation}
+ e^{-T_m}\overset d=\prod_{j=1}^{m-1}U_j,
+ \qquad
+ U_j\ \hbox{independent},\quad U_j\sim\Bet(1,j/m).
+ \label{eq:beta_product}
+\end{equation}
+The transform gives two useful exact representations of the density. For $0<t<2\pi$,
+\begin{equation}
+ \ell_m(t)=
+ \frac{\displaystyle\prod_{j=1}^{m-1}\Gamma(1+j/m)}
+      {\Gamma((m-1)/2)}
+ e^{-t}t^{(m-3)/2}
+ \sum_{j=0}^{\infty}v_j^{(m)}t^j.
+ \label{eq:glaser_series}
+\end{equation}
+For moderate and large $t$,
+\begin{equation}
+ \ell_m(t)=\sum_{r=0}^{\infty}e^{-(r+1)t}P_{m,r}(t),
+ \label{eq:residue_series}
+\end{equation}
+where $P_{m,r}$ is a polynomial of degree $m-2$. Appendix~\ref{app:density_series} derives both expansions directly from \eqref{eq:laplace_transform}, including recurrences for $v_j^{(m)}$ and the coefficients of $P_{m,r}$. In particular, the leading residue gives
+\begin{equation}
+ \ell_m(t)\sim e^{-t}\frac{m-1}{m^{m-1}}t^{m-2},
+ \qquad t\to\infty.
+ \label{eq:ell_tail}
+\end{equation}
+
+For evaluation of the conditional probabilities, write
+\begin{equation}
+ \widetilde\ell_m(t)=e^t\ell_m(t).
+ \label{eq:tilted_defs}
+\end{equation}
+For $a>0$, let $q_-(a)<1/(n+1)<q_+(a)$ be the two solutions of $J_n(q)=a$, and put
+\begin{equation}
+ \delta_\pm(a)=\big|(n+1)q_\pm(a)-1\big|.
+ \label{eq:delta}
+\end{equation}
+Changing variable through $J_n$ gives the lower and upper branch probabilities
+\begin{align}
+ G_{n,d}(q_-(a))
+ &=\frac{\{n/(n+1)\}^{n+1}}{\widetilde\ell_{n+1}(nd+a)}
+   \int_0^{nd}\frac{\widetilde\ell_n(nd-r)}{\delta_-(a+r)}\dd r,
+ \label{eq:lower_branch_formula}\\
+ 1-G_{n,d}(q_+(a))
+ &=\frac{\{n/(n+1)\}^{n+1}}{\widetilde\ell_{n+1}(nd+a)}
+   \int_0^{nd}\frac{\widetilde\ell_n(nd-r)}{\delta_+(a+r)}\dd r.
+ \label{eq:upper_branch_formula}
+\end{align}
+These expressions calculate the required tail probability directly, with the common exponential factor removed analytically. Prediction quantiles are then obtained by scalar inversion. For larger sample sizes, the conditional distribution can instead be evaluated directly by saddlepoint-centred contour inversion of its Laplace transform. This avoids the need to form high-order density coefficients and remains well scaled as $n$ increases. Numerical comparisons with the series-based calculation in their region of overlap agree to high precision. Appendix~\ref{app:numerical_details} gives details of both numerical routes, together with the quadrature transformation, logarithmic multiplier parametrisation and interpolation scheme used for the calculations reported below.
+
+\section{Asymptotic behaviour}
+\label{sec:asymptotics}
+
+The construction is exact for finite $n$. Three limiting regimes are nevertheless useful for interpretation and numerical checks.
+
+\subsection{Large sample size at fixed observed dispersion}
+
+Let $\psi$, $\psi_1$ and $\psi_2$ denote the digamma, trigamma and second polygamma functions, respectively. For fixed $d>0$, let $\alpha_d$ be the unique positive solution of
+\begin{equation}
+ \log\alpha_d-\psi(\alpha_d)=d.
+ \label{eq:alpha_d}
+\end{equation}
+This is the population relation between the Gamma shape and the scale-free dispersion. Let $F_{\alpha_d}$ and $g_{\alpha_d}$ denote the distribution function and density of a mean-one Gamma random variable with shape $\alpha_d$:
+\begin{equation}
+ g_{\alpha_d}(z)
+ =\frac{\alpha_d^{\alpha_d}}{\Gamma(\alpha_d)}
+ z^{\alpha_d-1}e^{-\alpha_d z},
+ \qquad z>0.
+ \label{eq:mean_one_gamma}
+\end{equation}
+For fixed $z$,
+\begin{equation}
+ J_n\!\left(\frac{z}{n+z}\right)
+ =j(z)+\frac{j_1(z)}{n}+O(n^{-2}),
+ \label{eq:J_large_n}
+\end{equation}
+where
+\begin{equation}
+ j(z)=z-1-\log z,
+ \qquad
+ j_1(z)=-\frac12(z-1)^2.
+ \label{eq:j_def}
+\end{equation}
+Define
+\begin{equation}
+ V_d=\psi_1(\alpha_d)-\frac1{\alpha_d},
+ \qquad
+ R_d=-\psi_2(\alpha_d)-\frac1{\alpha_d^2},
+ \label{eq:VR}
+\end{equation}
+and write $F_{\alpha_d}^{(k)}(z)$ for the $k$th derivative of $F_\alpha(z)$ with respect to $\alpha$, evaluated at $\alpha=\alpha_d$.
+
+\begin{proposition}[Large-sample expansion]
+\label{prop:large_n}
+Uniformly for $z$ in compact subsets of $(0,\infty)$,
+\begin{equation}
+ G_{n,d}\!\left(\frac{z}{n+z}\right)
+ =F_{\alpha_d}(z)+\frac{B_d(z)}{n}+O(n^{-2}),
+ \label{eq:large_n_cdf}
+\end{equation}
+where
+\begin{align}
+ B_d(z)
+ &=\frac12\left\{\frac{\alpha_d-1}{\alpha_d}z-z^2\right\}
+       g_{\alpha_d}(z) \notag\\
+ &\quad+
+ \left\{\frac{d-j(z)}{V_d}-\frac1{2\alpha_d V_d}-\frac{R_d}{2V_d^2}\right\}
+       F_{\alpha_d}^{(1)}(z)
+ -\frac1{2V_d}F_{\alpha_d}^{(2)}(z).
+ \label{eq:B_d}
+\end{align}
+If $x_p$ is the $p$th quantile of the mean-one Gamma law, then
+\begin{equation}
+ M_{n,p}(d)
+ =x_p-\frac{B_d(x_p)}{n\,g_{\alpha_d}(x_p)}+O(n^{-2}).
+ \label{eq:large_n_quantile}
+\end{equation}
+\end{proposition}
+
+\paragraph{Derivation sketch.}
+Write $q=z/(n+z)$ in the conditional distribution \eqref{eq:conditional_cdf} and apply Laplace's method to the resulting numerator and normalising integral. The saddlepoint in the profiled shape direction is $\alpha_d$, determined by \eqref{eq:alpha_d}, and the augmentation shift is expanded using \eqref{eq:J_large_n}. The order-$n^{-1}$ expansion of the scale component gives the first line of \eqref{eq:B_d}. The quadratic fluctuation of the profiled shape likelihood contributes $-(2V_d)^{-1}F_{\alpha_d}^{(2)}(z)$; the displacement of the saddlepoint and the third-cumulant term give the coefficient of $F_{\alpha_d}^{(1)}(z)$. Finally, ordinary quantile perturbation applied to \eqref{eq:large_n_cdf} gives \eqref{eq:large_n_quantile}.
+
+The leading term is the ordinary Gamma quantile obtained by matching the observed dispersion, but the order-$n^{-1}$ correction is not obtained by treating the fitted parameters as known. It comes from the exact conditional law and retains the contribution of parameter uncertainty. The same expansion can also be checked numerically against the exact saddlepoint-centred contour calculation described in Appendix~\ref{app:numerical_details}; after the order-$n^{-1}$ term is removed, the remaining difference behaves as $O(n^{-2})$.
+
+\paragraph{Connection with modified estimative prediction limits.}
+Vidoni \cite{Vidoni1998} derives an additive modification of the estimative prediction limit whose repeated-sampling coverage is correct to third order. Ueki and Fueda \cite{UekiFueda2007} give an asymptotically equivalent direct adjustment based on the coverage error of the estimative limit. For the Gamma model this error can be calculated directly and yields the same order-$n^{-1}$ term as \eqref{eq:large_n_quantile}.
+
+Write $a=\alpha_d$, let $x=x_p(a)$ satisfy $F_a(x)=p$, and consider the estimative multiplier $x_p(\widehat\alpha)$. With $W=\bar X/\mu$, the Gamma total is independent of the sample proportions, so $W$ and $\widehat\alpha$ are independent. Moreover,
+\[
+ \operatorname{Var}(W)=\frac1{na},\qquad
+ \E(\widehat\alpha-a)
+ =\frac1n\left\{\frac1{2aV_d}+\frac{R_d}{2V_d^2}\right\}+O(n^{-2}),\qquad
+ \operatorname{Var}(\widehat\alpha)=\frac1{nV_d}+O(n^{-2}).
+\]
+Expanding $F_a\{W x_p(\widehat\alpha)\}$ to second order, and using
+\[
+ \frac{\partial}{\partial a}\log g_a(z)=d-j(z),
+ \qquad
+ \frac{g_a'(z)}{g_a(z)}=\frac{a-1}{z}-a,
+\]
+gives
+\begin{equation}
+ \Pr\{Y\le \bar X x_p(\widehat\alpha)\}
+ =p+\frac{B_d(x)}{n}+O(n^{-2}),
+ \label{eq:estimative_coverage_error}
+\end{equation}
+with $B_d$ exactly as in \eqref{eq:B_d}. Vidoni's adjustment therefore changes the multiplier by $-B_d(x)/\{n g_a(x)\}$, giving \eqref{eq:large_n_quantile}. Thus the exact conditional expansion agrees through order $n^{-1}$ with the classical higher-order modification of the estimative prediction limit, while the present construction gives exact finite-sample coverage.
+
+\subsection{Large observed dispersion}
+
+Fix $n$ and let $d\to\infty$. The limiting behaviour changes at
+\begin{equation}
+ p_n^*=\frac{n}{n+1}.
+ \label{eq:pstar}
+\end{equation}
+Conditioning on an extremely large augmented log-product makes one of the $n+1$ proportions dominant and the remainder very small. Exchangeability assigns limiting probability $1/(n+1)$ to the future observation being the dominant component and $n/(n+1)$ to the dominant component lying in the observed sample.
+
+\begin{proposition}[Large-dispersion prediction limit]
+\label{prop:large_d}
+Fix $n\ge2$. If $0<p<p_n^*$ and
+\begin{equation}
+ \rho_-(p)=\left\{\frac{n}{(n+1)p}\right\}^{1/(n-1)}-1,
+ \label{eq:rho_minus}
+\end{equation}
+then
+\begin{equation}
+ \log M_{n,p}(d)
+ =-nd\,\rho_-(p)+O(1),
+ \qquad d\to\infty.
+ \label{eq:large_d_lowerbranch}
+\end{equation}
+If $p_n^*<p<1$ and
+\begin{equation}
+ \rho_+(p)=\{(n+1)(1-p)\}^{-1/(n-1)}-1,
+ \label{eq:rho_plus}
+\end{equation}
+then
+\begin{equation}
+ \log M_{n,p}(d)
+ =d\,\rho_+(p)+O(1),
+ \qquad d\to\infty.
+ \label{eq:large_d_upperbranch}
+\end{equation}
+At $p=p_n^*$, $M_{n,p}(d)\to1$.
+\end{proposition}
+
+\paragraph{Derivation sketch.}
+Let the branch level satisfy $a=nd\rho+O(1)$ for fixed $\rho\ge0$. Substitution of the leading residue \eqref{eq:ell_tail} into \eqref{eq:lower_branch_formula}--\eqref{eq:upper_branch_formula} gives the limiting lower-branch probability and upper-branch survival probability
+\[
+ \frac{n}{(n+1)(1+\rho)^{n-1}}
+ \quad\hbox{and}\quad
+ \frac{1}{(n+1)(1+\rho)^{n-1}},
+\]
+respectively. Solving these equations for $\rho$ gives \eqref{eq:rho_minus} and \eqref{eq:rho_plus}. Finally, on the lower branch $J_n(q)= (n+1)\log(n/(n+1))-\log M+o(1)$, while on the upper branch $J_n(q)=n\log M-(n+1)\log(n+1)+o(1)$. Since the branch calculation determines $a=nd\rho+O(1)$, these relations give \eqref{eq:large_d_lowerbranch} and \eqref{eq:large_d_upperbranch}. At $\rho=0$ the limiting branch mass is $p_n^*$ and $M\to1$.
+
+The transition is sharp. For a 95 per cent upper prediction limit, $p=0.95$ lies above $p_n^*$ for $n\le18$, equals it at $n=19$, and lies below it for $n\ge20$. The limits $n\to\infty$ and $d\to\infty$ are therefore not interchangeable.
+
+\subsection{Extreme tails at fixed sample size}
+
+Let
+\begin{equation}
+ I_n(x)=\int_0^x e^u\ell_n(u)\dd u,
+ \qquad x>0.
+ \label{eq:I_n}
+\end{equation}
+The leading residue \eqref{eq:ell_tail} gives particularly simple predictive tails on the sample-mean scale $z=y/\bar X$.
+
+\begin{proposition}[Finite-sample predictive tails]
+\label{prop:tails}
+For fixed $n\ge2$ and $d>0$,
+\begin{align}
+ 1-G_{n,d}\!\left(\frac{z}{n+z}\right)
+ &\sim \frac{I_n(nd)}{(n+1)(\log z)^{n-1}},
+ && z\to\infty,
+ \label{eq:upper_log_tail}\\
+ G_{n,d}\!\left(\frac{z}{n+z}\right)
+ &\sim \frac{n^n I_n(nd)}{(n+1)\{\log(1/z)\}^{n-1}},
+ && z\downarrow0.
+ \label{eq:lower_log_tail}
+\end{align}
+\end{proposition}
+
+\paragraph{Derivation sketch.}
+On either branch, substitute the leading residue \eqref{eq:ell_tail} into \eqref{eq:lower_branch_formula} or \eqref{eq:upper_branch_formula} and retain the finite integral $I_n(nd)$. On the upper branch, \eqref{eq:J_z} gives
+\[
+ J_n\!\left(\frac{z}{n+z}\right)
+ =n\log z-(n+1)\log(n+1)+o(1),
+ \qquad z\to\infty,
+\]
+whereas on the lower branch it gives
+\[
+ J_n\!\left(\frac{z}{n+z}\right)
+ =\log(1/z)+(n+1)\log\!\left(\frac{n}{n+1}\right)+o(1),
+ \qquad z\downarrow0.
+\]
+Combining these relations with the two branch weights yields \eqref{eq:upper_log_tail} and \eqref{eq:lower_log_tail}. Inverting the upper survival approximation at probability $1-\varepsilon$ gives \eqref{eq:extreme_log_multiplier}.
+
+Thus the finite-sample predictive ordering has log-polynomial rather than Gamma-type exponential tails. For an extreme upper probability $p=1-\varepsilon$,
+\begin{equation}
+ \log M_{n,1-\varepsilon}(d)
+ \sim
+ \left\{\frac{I_n(nd)}{(n+1)\varepsilon}\right\}^{1/(n-1)},
+ \qquad \varepsilon\downarrow0,
+ \label{eq:extreme_log_multiplier}
+\end{equation}
+up to lower-order additive terms. This explains the very large exact upper multipliers that occur for small $n$ and high observed dispersion.
+
+The tails also show a limitation of interpreting $G_{n,d}$ as if it were an ordinary parametric predictive distribution: every non-zero power moment is infinite at finite $n$. The construction is designed for calibrated quantiles and sets. Its fixed quantiles converge to ordinary Gamma quantiles as $n$ grows, but that convergence is not uniform in the remote tails.
+
+\section{Exact lower and upper prediction intervals}
+\label{sec:tables}
+
+Scale equivariance makes it natural to report prediction limits as multipliers of the sample mean. Table~\ref{tab:interval_multipliers} gives selected exact values. The two columns under 90 per cent coverage are the 0.05 and 0.95 prediction quantiles; those under 95 per cent coverage are the 0.025 and 0.975 quantiles; and those under 99 per cent coverage are the 0.005 and 0.995 quantiles. Thus, for example, the exact equal-tail 95 per cent prediction interval is
+\[
+ \big[\bar X M_{n,.025}(D_n),\;\bar X M_{n,.975}(D_n)\big].
+\]
+The table therefore gives both one-sided critical values and the corresponding equal-tail two-sided intervals.
+
+\begin{table}[htbp]
+\centering
+\caption{Selected exact equal-tail prediction interval multipliers. Each lower and upper entry is multiplied by $\bar X$.}
+\label{tab:interval_multipliers}
+\scriptsize
+\setlength{\tabcolsep}{4.2pt}
+\begin{tabular}{@{}rr rr rr rr@{}}
+\toprule
+&& \multicolumn{2}{c}{90\% interval} & \multicolumn{2}{c}{95\% interval} & \multicolumn{2}{c}{99\% interval}\\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+$n$ & $d$ & $M_{.05}$ & $M_{.95}$ & $M_{.025}$ & $M_{.975}$ & $M_{.005}$ & $M_{.995}$\\
+\midrule
+3 & 0.05 & 0.17959 & 2.8811 & 0.05770 & 4.3525 & 0.000113 & 17.586\\
+3 & 0.25 & 0.005102 & 7.1814 & 0.000138 & 15.255 & $1.46\times10^{-11}$ & 294.913\\
+3 & 1.00 & $7.08\times10^{-7}$ & 28.731 & $1.30\times10^{-10}$ & 141.493 & $1.51\times10^{-26}$ & $1.51\times10^{5}$\\
+\addlinespace
+5 & 0.05 & 0.36893 & 2.0116 & 0.25859 & 2.4327 & 0.07685 & 3.9429\\
+5 & 0.25 & 0.05748 & 3.7140 & 0.01715 & 5.2194 & 0.000244 & 12.106\\
+5 & 1.00 & 0.000294 & 8.0899 & $9.37\times10^{-6}$ & 14.488 & $1.38\times10^{-10}$ & 68.970\\
+\addlinespace
+10 & 0.05 & 0.47010 & 1.7327 & 0.38698 & 1.9556 & 0.23650 & 2.5375\\
+10 & 0.25 & 0.12443 & 2.8115 & 0.06726 & 3.5077 & 0.01222 & 5.5287\\
+10 & 1.00 & 0.002737 & 4.9638 & 0.000405 & 7.0955 & $2.17\times10^{-6}$ & 14.624\\
+\addlinespace
+20 & 0.05 & 0.51047 & 1.6399 & 0.43844 & 1.8118 & 0.31069 & 2.2117\\
+20 & 0.25 & 0.15965 & 2.5331 & 0.10038 & 3.0461 & 0.03209 & 4.3348\\
+20 & 1.00 & 0.005799 & 4.1491 & 0.001351 & 5.5697 & $3.44\times10^{-5}$ & 9.5646\\
+\addlinespace
+50 & 0.05 & 0.53216 & 1.5934 & 0.46589 & 1.7427 & 0.35062 & 2.0696\\
+50 & 0.25 & 0.18051 & 2.3979 & 0.12126 & 2.8331 & 0.04854 & 3.8501\\
+50 & 1.00 & 0.008410 & 3.7776 & 0.002415 & 4.9254 & 0.000122 & 7.8327\\
+\bottomrule
+\end{tabular}
+\end{table}
+\FloatBarrier
+
+The dependence on dispersion is strongly asymmetric in small samples. With $n=3$ and $d=1$, for example, the equal-tail 99 per cent interval is approximately
+\[
+ [1.51\times10^{-26}\bar X,\;1.51\times10^5\bar X].
+\]
+These values follow from the finite-sample tail behaviour in Proposition~\ref{prop:tails}. As $n$ increases, the lower and upper multipliers move rapidly towards the corresponding quantiles of the fitted mean-one Gamma law in Proposition~\ref{prop:large_n}.
+
+\section{Monte Carlo coverage validation}
+\label{sec:audit}
+
+Exact coverage follows algebraically from Theorem~\ref{thm:pit}; the purpose of the Monte Carlo calculation is therefore to check the numerical implementation over a wide range of sample sizes, underlying shapes and prediction probabilities. We used
+\[
+ n\in\{3,5,10,20\},
+ \qquad
+ \alpha\in\{0.1,0.5,1,2,5,10,100\},
+\]
+with $10^7$ independent replications for each of the 28 combinations, giving $2.8\times10^8$ augmented samples in total. The scale parameter was set to one, since scale invariance makes its value immaterial.
+
+For each simulated augmented sample we calculated the conditional probability
+\[
+ U=G_{n,D_n}(Q),
+\]
+which is exactly uniform under the model. All eight coverage probabilities in Table~\ref{tab:gamma_coverage} can therefore be read from the same simulation. For $p<1/2$, the table reports
+\[
+ \Pp(Y\ge M_{n,p}(D_n)\bar X)=1-p,
+\]
+while for $p>1/2$ it reports
+\[
+ \Pp(Y\le M_{n,p}(D_n)\bar X)=p.
+\]
+The calculation used the series and branch quadrature described in Appendix~\ref{app:numerical_details}. For the large simulation, the resulting conditional distribution was tabulated on a fine two-dimensional grid and interpolated; direct comparisons with adaptive quadrature were used to verify that interpolation error was negligible relative to Monte Carlo error.
+
+\begin{table}[p]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{rrrrrrrrrr}
+\toprule
+$n$ & $\alpha$ & $0.005$ & $0.01$ & $0.05$ & $0.1$ & $0.9$ & $0.95$ & $0.99$ & $0.995$ \\
+ & & $(0.995)$ & $(0.99)$ & $(0.95)$ & $(0.9)$ & $(0.9)$ & $(0.95)$ & $(0.99)$ & $(0.995)$ \\
+\midrule
+3 & 0.1 & 0.9950 & 0.9900 & 0.9500 & 0.9000 & 0.9000 & 0.9501 & 0.9900 & 0.9950 \\
+ & 0.5 & 0.9950 & 0.9900 & 0.9500 & 0.9001 & 0.8998 & 0.9499 & 0.9900 & 0.9950 \\
+ & 1 & 0.9950 & 0.9900 & 0.9501 & 0.9000 & 0.9000 & 0.9499 & 0.9900 & 0.9950 \\
+ & 2 & 0.9950 & 0.9900 & 0.9500 & 0.9000 & 0.9001 & 0.9500 & 0.9901 & 0.9950 \\
+ & 5 & 0.9950 & 0.9900 & 0.9501 & 0.9001 & 0.9001 & 0.9500 & 0.9900 & 0.9950 \\
+ & 10 & 0.9950 & 0.9900 & 0.9500 & 0.8999 & 0.9002 & 0.9501 & 0.9901 & 0.9951 \\
+ & 100 & 0.9950 & 0.9900 & 0.9501 & 0.9000 & 0.8999 & 0.9499 & 0.9900 & 0.9950 \\
+\addlinespace
+5 & 0.1 & 0.9950 & 0.9900 & 0.9501 & 0.9001 & 0.9001 & 0.9500 & 0.9900 & 0.9950 \\
+ & 0.5 & 0.9950 & 0.9900 & 0.9500 & 0.8999 & 0.9000 & 0.9501 & 0.9900 & 0.9950 \\
+ & 1 & 0.9950 & 0.9899 & 0.9500 & 0.9002 & 0.8999 & 0.9500 & 0.9900 & 0.9950 \\
+ & 2 & 0.9950 & 0.9900 & 0.9500 & 0.9000 & 0.9000 & 0.9500 & 0.9900 & 0.9950 \\
+ & 5 & 0.9950 & 0.9900 & 0.9500 & 0.8999 & 0.9001 & 0.9501 & 0.9900 & 0.9950 \\
+ & 10 & 0.9950 & 0.9900 & 0.9500 & 0.8999 & 0.9001 & 0.9500 & 0.9900 & 0.9950 \\
+ & 100 & 0.9950 & 0.9900 & 0.9500 & 0.8999 & 0.9000 & 0.9501 & 0.9901 & 0.9950 \\
+\addlinespace
+10 & 0.1 & 0.9950 & 0.9900 & 0.9499 & 0.8999 & 0.8998 & 0.9499 & 0.9899 & 0.9950 \\
+ & 0.5 & 0.9950 & 0.9901 & 0.9500 & 0.9000 & 0.9000 & 0.9500 & 0.9900 & 0.9950 \\
+ & 1 & 0.9950 & 0.9900 & 0.9500 & 0.9001 & 0.8999 & 0.9500 & 0.9900 & 0.9950 \\
+ & 2 & 0.9950 & 0.9900 & 0.9501 & 0.9000 & 0.8999 & 0.9499 & 0.9900 & 0.9950 \\
+ & 5 & 0.9950 & 0.9900 & 0.9500 & 0.9000 & 0.9002 & 0.9502 & 0.9900 & 0.9950 \\
+ & 10 & 0.9950 & 0.9900 & 0.9500 & 0.9000 & 0.9001 & 0.9500 & 0.9900 & 0.9950 \\
+ & 100 & 0.9950 & 0.9900 & 0.9500 & 0.8999 & 0.9001 & 0.9500 & 0.9900 & 0.9950 \\
+\addlinespace
+20 & 0.1 & 0.9950 & 0.9900 & 0.9500 & 0.9001 & 0.9001 & 0.9501 & 0.9900 & 0.9950 \\
+ & 0.5 & 0.9950 & 0.9900 & 0.9500 & 0.8999 & 0.9001 & 0.9500 & 0.9900 & 0.9950 \\
+ & 1 & 0.9950 & 0.9900 & 0.9501 & 0.9002 & 0.9000 & 0.9500 & 0.9900 & 0.9950 \\
+ & 2 & 0.9950 & 0.9900 & 0.9498 & 0.8999 & 0.8999 & 0.9499 & 0.9900 & 0.9950 \\
+ & 5 & 0.9950 & 0.9900 & 0.9501 & 0.9001 & 0.9002 & 0.9500 & 0.9901 & 0.9950 \\
+ & 10 & 0.9950 & 0.9900 & 0.9500 & 0.9000 & 0.8999 & 0.9499 & 0.9900 & 0.9950 \\
+ & 100 & 0.9950 & 0.9899 & 0.9500 & 0.9000 & 0.8999 & 0.9500 & 0.9900 & 0.9950 \\
+\bottomrule
+\end{tabular}
+\caption{Monte Carlo coverage of the exact Gamma prediction limits, based on $10^7$ simulations for each $(n,\alpha)$ combination. For the four lower prediction quantiles, entries are the probabilities that the future observation exceeds the corresponding prediction limit; for the four upper prediction quantiles, entries are the probabilities that it does not exceed the prediction limit. Nominal coverage probabilities are shown in parentheses.}
+\label{tab:gamma_coverage}
+\end{table}
+\FloatBarrier
+
+The results are very close to the nominal values throughout the table. Across the 224 reported coverage probabilities, the largest absolute standardised discrepancy from nominal coverage was $2.70$ Monte Carlo standard errors, occurring for $n=3$, $\alpha=10$ and $p=0.995$. For comparison, a Bonferroni 99 per cent simultaneous band over all 224 comparisons corresponds to approximately $4.08$ standard errors. No systematic variation with sample size, underlying shape or tail direction is apparent. The fixed-seed cell-level output and lookup-validation results are archived with the software in the \texttt{reproduced\_results} directory.
+
+\section{Air-conditioning failure-time example}
+
+Consider the intervals, in operating hours, between failures of the air-conditioning equipment on one of the Boeing 720 aircraft studied by Proschan \cite{Proschan1963}:
+\begin{equation}
+ 3,\ 5,\ 7,\ 18,\ 43,\ 85,\ 91,\ 98,\ 100,\ 130,\ 230,\ 487.
+ \label{eq:aircond_data}
+\end{equation}
+This version of the data is distributed as \texttt{aircondit} in the R package \texttt{boot}; see Cox and Snell \cite{CoxSnell1981} and Davison and Hinkley \cite{DavisonHinkley1997}. Their order is immaterial under the independent Gamma model.
+
+The sufficient sample summaries for the exact calculation are
+\begin{equation}
+ n=12,
+ \qquad
+ \bar X=108.0833,
+ \qquad
+ D_n=0.854314.
+ \label{eq:aircond_summary}
+\end{equation}
+For comparison, Krishnamoorthy, Mathew and Mukherjee \cite{Krishnamoorthy2008} use the Wilson--Hilferty cube-root approximation. Writing $W_i=X_i^{1/3}$, with sample mean $\bar W$ and sample standard deviation $S_W$, their approximate prediction quantile is
+\begin{equation}
+ y_p^{\mathrm{KMM}}
+ =\left[\max\left(0,
+ \bar W+t_{n-1,p}S_W\sqrt{1+\frac1n}\right)\right]^3,
+ \label{eq:kmm_prediction}
+\end{equation}
+where $t_{n-1,p}$ is the $p$th Student-$t$ quantile. Table~\ref{tab:aircond} compares this approximation with the exact quantiles. Plug-in Gamma quantiles, obtained by substituting the maximum-likelihood estimates, are also shown; the estimates are $\widehat\alpha=0.706493$ and $\widehat\theta=152.986$ hours.
+
+\begin{table}[ht]
+\centering
+\caption{Prediction quantiles for the air-conditioning data, in hours.}
+\label{tab:aircond}
+\begin{tabular}{@{}rccc@{}}
+\toprule
+$p$ & Exact & Krishnamoorthy et al. & Plug-in Gamma\\
+\midrule
+0.005 & 0.00273 & 0 & 0.0741\\
+0.025 & 0.163 & 0 & 0.725\\
+0.050 & 0.755 & 0.100 & 1.942\\
+0.500 & 63.182 & 65.599 & 63.254\\
+0.950 & 471.126 & 439.204 & 366.665\\
+0.975 & 646.286 & 594.021 & 464.420\\
+0.995 & 1199.489 & 1062.465 & 695.712\\
+\bottomrule
+\end{tabular}
+\end{table}
+\FloatBarrier
+
+The exact equal-tail 90, 95 and 99 per cent intervals are therefore, respectively,
+\[
+ [0.755,471.126],\qquad
+ [0.163,646.286],\qquad
+ [0.00273,1199.489]\ \text{hours}.
+\]
+The cube-root approximation is much closer to the exact upper limits than the plug-in Gamma calculation, but the differences remain material in the tails. For example, the exact one-sided 95 per cent upper limit is 471.1 hours, compared with 439.2 hours from \eqref{eq:kmm_prediction}; the corresponding one-sided 95 per cent lower limits are 0.755 and 0.100 hours. At the 0.5 and 2.5 per cent levels the transformed normal lower limit is negative, so the Krishnamoorthy procedure returns zero. The medians from all three calculations are close.
+
+\section{Discussion}
+
+The main result is that the two-parameter Gamma prediction problem can be solved exactly by including the future observation before conditioning. 
+Normalising the augmented sample removes the scale parameter. Conditioning on the augmented log-product statistic removes the shape parameter. The conditional distribution of the future share given the augmented log-product statistic is therefore the same for every $\alpha>0$.
+
+The conditional probability integral transform gives the exact prediction set. The monotonicity theorem shows that it is a single interval, whose limits are found by scalar inversion. The practical consequence is the scale-equivariant representation
+\[
+ y_p=\bar X\,M_{n,p}(D_n),
+\]
+so all finite-sample parameter uncertainty is contained in a multiplier depending only on sample size, probability and observed dispersion.
+
+The density $\ell_m$ is related by a logarithmic transformation to the geometric-to-arithmetic mean ratio distribution studied by Glaser \cite{Glaser1976}. The Glaser-type and residue expansions follow from the same Gamma-function transform and are useful on different parts of the support. The leading residue also gives the log-polynomial form of the predictive tails. At fixed probability and observed dispersion, the exact quantiles approach those of a plug-in mean-one Gamma law as $n$ increases; at every finite $n$, however, the remote tails remain much heavier. This distinction matters particularly for very high prediction levels and small, dispersed samples.
+
+There are several natural extensions. One is Bayesian prediction. The exact frequentist limits provide a finite-sample calibration benchmark against which posterior predictive intervals can be compared. It would be particularly interesting to determine whether objective or calibrating priors for $(\alpha,\theta)$ can reproduce the exact limits, or approximate them closely, and how informative prior information changes the balance between prior concentration and repeated-sampling calibration.
+
+Another is to apply the same augmented-conditioning idea to other multi-parameter prediction problems. The inverse Gaussian family is a natural candidate because it also has a low-dimensional sufficient statistic, but the same question can be asked more broadly for curved and multi-parameter exponential families. Prediction of several future observations, future order statistics and tolerance-type quantities would require conditioning on more than one future share and may lead to higher-dimensional but still parameter-free laws. Censoring and truncation are further natural extensions in reliability and survival applications.
+
+There are also possible extensions within the Gamma family. Regression or hierarchical formulations would allow covariates or related samples to contribute information about shape and scale. In those settings exact finite-sample elimination of all nuisance parameters may no longer be possible, but the present construction provides a useful benchmark and suggests how conditioning and prior information might be combined. The transformation result in Section~3 similarly invites exact or calibrated prediction for other positive families generated from Gamma variables.
+
+\section*{AI usage acknowledgement}
+OpenAI's ChatGPT was used as a research and writing assistant during preparation of this paper, including assistance with algebraic checking, numerical implementation and editorial refinement. The author reviewed the resulting arguments, calculations and text and takes responsibility for the content.
+
+\section*{Data and software availability}
+Software for calculating the prediction intervals and reproducing the numerical examples in this paper is available at \url{https://github.com/ProteusLLP/proteus-research/tree/main/gamma_prediction}. The installable Python project is contained in the \texttt{python} subdirectory and requires only NumPy and SciPy. It includes extensive pre-built critical-value tables. The script \texttt{reproduce\_paper.py} reproduces the deterministic tables and examples by default and provides explicit options for the Monte Carlo validation.
+
+\appendix
+\section{Monotonicity of the one-sided inversion}
+\label{app:monotonicity}
+
+Fix $s=nd>0$ and let $q_0=1/(n+1)$. For each $a>0$, let $q_-(a)<q_0<q_+(a)$ be the two solutions of $J_n(q)=a$. Thus $q_-(a)$ decreases and $q_+(a)$ increases with $a$.
+
+The kernel in \eqref{eq:conditional_density} contains the weight $n(1-q)^{n-1}$. Its contribution after transforming from $q$ to $a=J_n(q)$ on either branch is
+\begin{equation}
+ \omega_\pm(a)
+ =\frac{n\{1-q_\pm(a)\}^{n-1}}
+        {|J_n'(q_\pm(a))|}.
+ \label{eq:wbranch}
+\end{equation}
+Since
+\begin{equation}
+ J_n'(q)=\frac{(n+1)q-1}{q(1-q)},
+ \label{eq:Jprime}
+\end{equation}
+we have
+\begin{equation}
+ \omega_\pm(a)
+ =\frac{nq_\pm(a)\{1-q_\pm(a)\}^n}
+        {|(n+1)q_\pm(a)-1|}.
+ \label{eq:wbranch2}
+\end{equation}
+Using
+\begin{equation}
+ e^{-J_n(q)}
+ =\frac{(n+1)^{n+1}}{n^n}q(1-q)^n,
+ \label{eq:e_minus_J}
+\end{equation}
+and the notation $\delta_\pm(a)$ from \eqref{eq:delta},
+\begin{equation}
+ \omega_\pm(a)=C_n\frac{e^{-a}}{\delta_\pm(a)},
+ \qquad
+ C_n=\left(\frac{n}{n+1}\right)^{n+1}.
+ \label{eq:wfactor}
+\end{equation}
+Both $\delta_-(a)$ and $\delta_+(a)$ are strictly increasing: as $a$ increases, $q_-(a)$ decreases away from $1/(n+1)$ and $q_+(a)$ increases away from it.
+
+The remaining ingredient is a monotonicity property of $\ell_m$.
+
+\begin{lemma}
+\label{lem:tilted_increasing}
+For every integer $m\ge3$, the function
+\begin{equation}
+ t\longmapsto \widetilde\ell_m(t)=e^t\ell_m(t)
+ \label{eq:tilted_ell}
+\end{equation}
+is strictly increasing on $(0,\infty)$.
+\end{lemma}
+
+\begin{proof}
+Let
+\[
+ Z_m=m^m\prod_{i=1}^mP_i=e^{-T_m},
+ \qquad (P_1,\ldots,P_m)\sim\Dir_m(1,\ldots,1),
+\]
+and let $f_m$ be the density of $Z_m$ on $(0,1)$. The change of variable $z=e^{-t}$ gives
+\begin{equation}
+ \ell_m(t)=e^{-t}f_m(e^{-t}),
+ \qquad
+ \widetilde\ell_m(t)=f_m(e^{-t}).
+ \label{eq:ell_f_relation}
+\end{equation}
+It is therefore enough to prove that $f_m$ is strictly decreasing.
+
+For $m=3$, the beta-product representation \eqref{eq:beta_product} gives
+\[
+ Z_3\overset d=XY,
+ \qquad
+ X\sim\Bet(1,1/3),\quad Y\sim\Bet(1,2/3),
+\]
+independently. More generally, let $X\sim\Bet(1,a)$ and $Y\sim\Bet(1,b)$ independently, with $a+b=1$. The density of $Z=XY$ is
+\begin{equation}
+ f_Z(z)=ab\int_z^1 x^{-1}(1-x)^{a-1}
+ \left(1-\frac{z}{x}\right)^{b-1}\dd x.
+ \label{eq:product_beta_density}
+\end{equation}
+Substituting $x=z+(1-z)u$ gives
+\begin{equation}
+ f_Z(z)=ab\int_0^1
+ [z+(1-z)u]^{-b}u^{b-1}(1-u)^{a-1}\dd u.
+ \label{eq:product_beta_density2}
+\end{equation}
+Differentiation under the integral sign yields
+\begin{equation}
+ f_Z'(z)
+ =-ab^2\int_0^1
+ (1-u)[z+(1-z)u]^{-b-1}u^{b-1}(1-u)^{a-1}\dd u<0.
+ \label{eq:product_beta_derivative}
+\end{equation}
+Hence $f_3$ is strictly decreasing.
+
+For the induction step, Dirichlet stick breaking gives
+\begin{equation}
+ P_{m+1}=Q,
+ \qquad
+ (P_1,\ldots,P_m)=(1-Q)(R_1,\ldots,R_m),
+ \label{eq:stick_break}
+\end{equation}
+where $Q\sim\Bet(1,m)$ is independent of $(R_i)\sim\Dir_m(1,\ldots,1)$. Thus
+\begin{equation}
+ Z_{m+1}=W_m Z_m,
+ \qquad
+ W_m=\frac{(m+1)^{m+1}}{m^m}Q(1-Q)^m.
+ \label{eq:Z_induction}
+\end{equation}
+The arithmetic-geometric mean inequality gives $0<W_m\le1$. If $Z$ has a decreasing density on $(0,1)$ and $W\in(0,1]$ is independent, then
+\begin{equation}
+ f_{WZ}(z)=\int_{[z,1]}w^{-1}f_Z(z/w)\,\mu_W(\dd w)
+ \label{eq:scaled_density}
+\end{equation}
+is decreasing: increasing $z$ both reduces the integration domain and decreases the integrand on the common domain. In the present case $W_m$ has positive density on subintervals of $(0,1)$, so strict decrease is inherited. Induction from $m=3$ completes the proof.
+\end{proof}
+
+We can now prove Theorem~\ref{thm:monotonicity}. On the lower branch, the event $Q\le q_-(a)$ is equivalent to being on the lower branch with $J_n(Q)\ge a$. Conditional on $T_{n+1}=s+a$,
+\begin{equation}
+ G_{n,d}(q_-(a))
+ =\frac{\displaystyle\int_a^{a+s}\omega_-(r)\ell_n(a+s-r)\dd r}
+        {\ell_{n+1}(a+s)}.
+ \label{eq:lower_monotone_start}
+\end{equation}
+Using \eqref{eq:wfactor}, changing variable $r=a+u$, and multiplying numerator and denominator by $e^{a+s}$ gives exactly \eqref{eq:lower_branch_formula}. Its numerator is strictly decreasing in $a$ because $\delta_-$ is increasing, while its denominator is strictly increasing by Lemma~\ref{lem:tilted_increasing}, since $n+1\ge3$. Hence $G_{n,d}(q_-(a))$ decreases with $a$. Since $q_-(a)$ also decreases, $G_{n,d}(q)$ increases on $(0,q_0)$.
+
+On the upper branch,
+\begin{equation}
+ 1-G_{n,d}(q_+(a))
+ =\frac{\displaystyle\int_a^{a+s}\omega_+(r)\ell_n(a+s-r)\dd r}
+        {\ell_{n+1}(a+s)},
+ \label{eq:upper_monotone_start}
+\end{equation}
+which gives \eqref{eq:upper_branch_formula}. The same argument shows that the survival probability decreases with $a$, so $G_{n,d}(q_+(a))$ increases with $a$ and therefore with $q$. Continuity at $q_0$ joins the two branches. It remains to check the limits at the ends of the interval. From the leading residue \eqref{eq:ell_tail},
+\[
+ e^t\ell_m(t)\sim \frac{m-1}{m^{m-1}}t^{m-2},
+ \qquad t\to\infty.
+\]
+Substitution in the two branch expressions shows that, as $a\to\infty$,
+\[
+ G_{n,d}(q_-(a))=O(a^{-(n-1)}),
+ \qquad
+ 1-G_{n,d}(q_+(a))=O(a^{-(n-1)}).
+\]
+Since $q_-(a)\downarrow0$ and $q_+(a)\uparrow1$, it follows that $G_{n,d}(q)\to0$ as $q\downarrow0$ and $G_{n,d}(q)\to1$ as $q\uparrow1$. This also proves that, for every $0<p<1$, the corresponding upper prediction multiplier is finite, and completes the proof.
+
+\section{Derivation of the series for \texorpdfstring{$\ell_m$}{ell-m}}
+\label{app:density_series}
+
+This appendix derives the two representations used in Section~\ref{sec:numerics}. Since
+\[
+ T_m=-m\log\!\left(
+ \frac{(\prod_{i=1}^m X_i)^{1/m}}{S_m/m}
+ \right),
+\]
+they are logarithmic forms of the distribution of the ratio of the geometric mean to the arithmetic mean treated by Glaser \cite{Glaser1976}.
+
+\subsection{Laplace transform}
+
+Under the normalisation in \eqref{eq:ell_definition}, Dirichlet moments give
+\begin{align}
+ \mathcal L_m(z)
+ &=m^{mz}\E\left(\prod_{i=1}^mP_i^z\right) \notag\\
+ &=m^{mz}\frac{\Gamma(m)\Gamma(1+z)^m}{\Gamma(m(1+z))},
+ \label{eq:app_laplace1}
+\end{align}
+for $\Re z>-1$. Gauss's multiplication formula then yields the product form in \eqref{eq:laplace_transform}. The factor
+\[
+ \frac{\Gamma(1+j/m)\Gamma(1+z)}{\Gamma(1+z+j/m)}
+\]
+is the Mellin transform of a $\Bet(1,j/m)$ variable, giving \eqref{eq:beta_product}.
+
+\subsection{Glaser-type expansion near the origin}
+
+Write
+\[
+ w=1+z,\qquad a_j=\frac jm,\qquad
+ C_m=\prod_{j=1}^{m-1}\Gamma(1+a_j).
+\]
+From \eqref{eq:laplace_transform},
+\begin{equation}
+ \log\mathcal L_m(z)
+ =\log C_m+\sum_{j=1}^{m-1}
+ \{\log\Gamma(w)-\log\Gamma(w+a_j)\}.
+ \label{eq:logL_sum}
+\end{equation}
+For $|\arg w|<\pi$, the standard Gamma-ratio expansion may be written
+\begin{equation}
+ \log\Gamma(w)-\log\Gamma(w+a)
+ =-a\log w+
+ \sum_{i=1}^{\infty}
+ \frac{(-1)^{i+1}\{B_{i+1}-B_{i+1}(a)\}}
+      {i(i+1)w^i},
+ \label{eq:gamma_ratio_bern}
+\end{equation}
+where $B_k(x)$ is the Bernoulli polynomial and $B_k=B_k(0)$. Now
+\[
+ \sum_{j=1}^{m-1}a_j=\frac{m-1}{2},
+\]
+and the Bernoulli multiplication identity
+\begin{equation}
+ \sum_{j=0}^{m-1}B_k(j/m)=m^{1-k}B_k
+ \label{eq:bernoulli_multiplication}
+\end{equation}
+gives
+\begin{equation}
+ \sum_{j=1}^{m-1}\{B_{i+1}-B_{i+1}(j/m)\}
+ =(m-m^{-i})B_{i+1}.
+ \label{eq:bernoulli_sum}
+\end{equation}
+Consequently,
+\begin{equation}
+ \log\mathcal L_m(z)
+ =\log C_m-\frac{m-1}{2}\log w+
+ \sum_{i=1}^{\infty}y_i^{(m)}w^{-i},
+ \label{eq:logL_expansion}
+\end{equation}
+with
+\begin{equation}
+ y_i^{(m)}=
+ \frac{(-1)^{i+1}}{i(i+1)}(m-m^{-i})B_{i+1}.
+ \label{eq:y_coeff}
+\end{equation}
+Only odd $i$ contribute, apart from the zero Bernoulli terms implicit in this expression.
+
+Define $b_j^{(m)}$ by
+\begin{equation}
+ \exp\left(\sum_{i=1}^{\infty}y_i^{(m)}u^i\right)
+ =\sum_{j=0}^{\infty}b_j^{(m)}u^j.
+ \label{eq:b_generating}
+\end{equation}
+Differentiating \eqref{eq:b_generating} and equating coefficients gives
+\begin{equation}
+ b_0^{(m)}=1,
+ \qquad
+ b_j^{(m)}=\frac1j\sum_{i=1}^j
+ i\,y_i^{(m)}b_{j-i}^{(m)}.
+ \label{eq:b_recurrence}
+\end{equation}
+Thus
+\begin{equation}
+ \mathcal L_m(z)
+ =C_m\sum_{j=0}^{\infty}b_j^{(m)}(z+1)^{-\{(m-1)/2+j\}}.
+ \label{eq:L_power}
+\end{equation}
+Using
+\begin{equation}
+ \mathcal L^{-1}[(z+1)^{-a}](t)
+ =\frac{e^{-t}t^{a-1}}{\Gamma(a)},
+ \label{eq:inverse_basic}
+\end{equation}
+term-by-term inversion gives \eqref{eq:glaser_series}, with
+\begin{equation}
+ v_j^{(m)}=
+ \frac{\Gamma((m-1)/2)\,b_j^{(m)}}
+   {\Gamma((m-1)/2+j)}.
+ \label{eq:v_coeff}
+\end{equation}
+Using Gauss's multiplication formula, the prefactor in \eqref{eq:glaser_series} may equivalently be written
+\[
+ \frac{(m-1)!(2\pi)^{(m-1)/2}}
+ {m^{m-1/2}\Gamma((m-1)/2)}.
+\]
+The expansion above determines the coefficients of the inverted series, while Glaser's analysis establishes convergence of the resulting density series for $0<t<2\pi$ and justifies the term-by-term inversion on this interval. For $m=2$ it sums to the closed form
+\begin{equation}
+ \ell_2(t)=\frac{e^{-t}}{2\sqrt{1-e^{-t}}}.
+ \label{eq:ell2}
+\end{equation}
+
+\subsection{Residue expansion}
+
+The transform \eqref{eq:laplace_transform} has a pole of order $m-1$ at
+\[
+ z=-(r+1),\qquad r=0,1,2,\ldots.
+\]
+For $t>0$, inverse Laplace integration may be closed to the left. Indeed, Stirling's formula for Gamma ratios gives $\mathcal L_m(z)=O(|z|^{-(m-1)/2})$ uniformly on vertical lines away from the poles, while $e^{zt}$ supplies exponential decay as $\Re z\to-\infty$. Taking rectangular contours whose vertical sides avoid the poles therefore makes the remaining contour integral vanish. Hence the density is the sum of the residues of $e^{zt}\mathcal L_m(z)$ at these poles. The explicit coefficient formulae below also show at most polynomial growth in $r$, so the factor $e^{-(r+1)t}$ makes the resulting residue series absolutely convergent for every $t>0$. Put $\xi=z+r+1$ and define
+\begin{equation}
+ H_{m,r}(\xi)=\xi^{m-1}\mathcal L_m(-(r+1)+\xi).
+ \label{eq:H_def}
+\end{equation}
+The function $H_{m,r}$ is analytic at zero. Write
+\begin{equation}
+ \frac{H_{m,r}(\xi)}{H_{m,r}(0)}
+ =\sum_{b=0}^{\infty}c_b\xi^b,
+ \qquad c_0=1.
+ \label{eq:c_series}
+\end{equation}
+Since
+\[
+ e^{zt}\mathcal L_m(z)
+ =e^{-(r+1)t}\xi^{-(m-1)}H_{m,r}(\xi)e^{\xi t},
+\]
+the residue is the coefficient of $\xi^{-1}$. Expanding $e^{\xi t}$ gives
+\begin{equation}
+ \operatorname*{Res}_{z=-(r+1)}
+ [e^{zt}\mathcal L_m(z)]
+ =e^{-(r+1)t}P_{m,r}(t),
+ \label{eq:residue_one}
+\end{equation}
+where
+\begin{equation}
+ P_{m,r}(t)=H_{m,r}(0)
+ \sum_{h=0}^{m-2}c_{m-2-h}\frac{t^h}{h!}.
+ \label{eq:Ppoly}
+\end{equation}
+Summing \eqref{eq:residue_one} over $r\ge0$ gives \eqref{eq:residue_series}.
+
+The coefficients can be obtained without differentiating the transform at a pole. Let
+\begin{equation}
+ K_{m,r}(\xi)=\log H_{m,r}(\xi),
+ \qquad
+ g_k=K_{m,r}^{(k)}(0).
+ \label{eq:K_g}
+\end{equation}
+Because $H/H(0)=\exp(K-K(0))$, differentiation of \eqref{eq:c_series} gives
+\begin{equation}
+ c_{b+1}=\frac1{b+1}\sum_{i=0}^b
+ c_i\frac{g_{b-i+1}}{(b-i)!}.
+ \label{eq:c_recurrence}
+\end{equation}
+Writing $a_j=j/m$, the Gamma recurrence and the polygamma recurrence give
+\begin{equation}
+ g_1=m\log m+
+ \sum_{k=1}^r\left\{
+ \frac{m-1}{k}-\sum_{j=1}^{m-1}\frac1{k-a_j}
+ \right\},
+ \label{eq:g1}
+\end{equation}
+and, for $p\ge2$,
+\begin{equation}
+ g_p=(m-m^p)\psi^{(p-1)}(1)
+ +(p-1)!\sum_{k=1}^r\left\{
+ \frac{m-1}{k^p}-\sum_{j=1}^{m-1}\frac1{(k-a_j)^p}
+ \right\}.
+ \label{eq:gp}
+\end{equation}
+Finally, using $\lim_{\xi\to0}\xi\Gamma(-r+\xi)=(-1)^r/r!$ in \eqref{eq:H_def} gives
+\begin{equation}
+ H_{m,r}(0)=
+ \prod_{j=1}^{m-1}\frac{(j/m)(1-j/m)_r}{r!},
+ \label{eq:H0}
+\end{equation}
+where $(a)_r$ is the rising factorial. Equations \eqref{eq:Ppoly}--\eqref{eq:H0} therefore determine every residue polynomial explicitly.
+
+For $r=0$, \eqref{eq:H0} gives $H_{m,0}(0)=(m-1)!/m^{m-1}$. The highest power in \eqref{eq:Ppoly} is then
+\[
+ \frac{H_{m,0}(0)}{(m-2)!}t^{m-2}
+ =\frac{m-1}{m^{m-1}}t^{m-2},
+\]
+which proves the tail form \eqref{eq:ell_tail}.
+
+\section{Numerical evaluation}
+\label{app:numerical_details}
+
+\subsection{Evaluation of \texorpdfstring{$\ell_m$}{ell-m}}
+
+For $m\le51$, 180 terms of \eqref{eq:glaser_series} are used in the central region, with the residue expansion \eqref{eq:residue_series} used away from it. The Glaser-type series is used wherever its 160- and 180-term sums agree to the numerical tolerance; residues are added until three successive terms are negligible relative to the accumulated sum. To evaluate residue polynomials stably in standard double precision, the analytic factor $H_{m,r}$ is written as the product of its $m-1$ Gamma-ratio factors. Each factor is normalised and expanded separately, and the resulting short Taylor series are combined by convolution.
+
+For $52\le m\le201$, direct residue coefficient formation becomes ill-conditioned in the moderate tail. The central Glaser series remains stable below $t=5.5$. Above this point the runtime uses a packaged shape-preserving interpolation of $\log\widetilde\ell_m(t)$ on 1,400 logarithmically spaced points through $t=12000$. The grid is generated offline by saddlepoint-tilted pointwise inversion of \eqref{eq:laplace_transform}; independent off-grid checks at representative values of $m$ gave maximum relative density error below $2\times10^{-8}$. Runtime evaluation of this backend uses only standard NumPy/SciPy double-precision arithmetic: it performs no Fourier inversion and has no extended-arithmetic dependency. The offline generator is distributed with the software.
+
+\subsection{Branch coordinates and quadrature}
+
+For fixed $n$ and $a\ge0$, the equations $J_n(q)=a$ have two solutions $q_-(a)$ and $q_+(a)$ around $1/(n+1)$. Near the minimum it is convenient to put $v=(n+1)q-1$ and use the cancellation-free expansion
+\begin{equation}
+ J_n(v)=\sum_{k=2}^{\infty}
+ \frac{(-1)^k+n^{1-k}}{k}v^k.
+ \label{eq:J_v_series}
+\end{equation}
+Near the outer boundaries, logarithmic coordinates for $1+v$ and $n-v$ prevent the roots from rounding to the boundary of the simplex.
+
+In \eqref{eq:lower_branch_formula} and \eqref{eq:upper_branch_formula}, the transformation
+\begin{equation}
+ r=nd\sin^2\phi,
+ \qquad 0<\phi<\frac\pi2,
+ \label{eq:sin_quad}
+\end{equation}
+regularises the square-root behaviour at the branch point and the $m=2$ singularity at $r=nd$. Before quadrature, the numerator integrand is divided by the common denominator $\widetilde\ell_{n+1}(nd+a)$, so the transformed integral remains on a numerically useful scale even when the unnormalised density is very small. Adaptive Gauss--Kronrod quadrature is then applied to the bounded transformed integrand.
+
+For sample sizes above 200, the implementation instead evaluates the exact conditional CDF by saddlepoint-centred inverse Laplace inversion. This can be written using the same transform $\mathcal L_m$ as in \eqref{eq:laplace_transform}, without first evaluating $\ell_n$. Let
+\[
+ N_n(q,t)=\int_0^q n(1-u)^{n-1}\ell_n(t-J_n(u))\dd u.
+\]
+Taking the Laplace transform in $t$ and using \eqref{eq:J} gives
+\begin{align}
+ \int_0^\infty e^{-zt}N_n(q,t)\,dt
+ &=\mathcal L_n(z)n
+ \left\{\frac{(n+1)^{n+1}}{n^n}\right\}^{z}
+ B_q(1+z,n(1+z)) \notag\\
+ &=\mathcal L_{n+1}(z)
+ I_q(1+z,n(1+z)),
+ \label{eq:contour_transform}
+\end{align}
+where $B_q$ and $I_q$ are the incomplete and regularised incomplete beta functions. The second equality follows by inserting the complete beta function and simplifying the Gamma factors. Hence, for $q=z_0/(n+z_0)$ and $t=nd+J_n(q)$,
+\begin{equation}
+ F_n(q\mid t)
+ =\frac{\mathcal L^{-1}[\mathcal L_{n+1}(z)
+ I_q\{1+z,n(1+z)\}](t)}
+ {\ell_{n+1}(t)}.
+ \label{eq:contour_cdf}
+\end{equation}
+Here $\mathcal L^{-1}$ denotes ordinary Bromwich inversion of the Laplace transform, and the denominator is $\mathcal L^{-1}[\mathcal L_{n+1}](t)$. The contour is taken through the real saddlepoint $\widehat z$, determined by
+\begin{equation}
+ -\frac{d}{dz}\log\mathcal L_{n+1}(\widehat z)=t.
+ \label{eq:contour_saddle}
+\end{equation}
+After factoring out the common value $e^{\widehat zt}\mathcal L_{n+1}(\widehat z)$, the numerator and denominator are rapidly decaying integrals over the same frequency variable. Their ratio is therefore well scaled even when the density itself is very small. The complex incomplete beta factor is evaluated by a modified-Lentz continued fraction.
+
+On the upper branch, the survival probability is inverted directly. The complementary beta factor is evaluated through the cancellation-free identity $1-I_q(a,b)=I_{1-q}(b,a)$, rather than by subtracting an approximate CDF from one. The continued fraction is permitted up to 5,000 iterations in extreme small-dispersion cases and exits earlier under ordinary conditions. The calculation is performed directly on the log-multiplier scale and is also available explicitly for cross-checking below the automatic handover. A 297-cell overlap check with $n\in\{100,150,200\}$, nine dispersion values from $10^{-6}$ to 50 and eleven probabilities from 0.001 to 0.999 had no failures; its maximum relative multiplier difference was below $9\times10^{-7}$. Direct checks remained stable through $n=100000$, including $d=10^{-6}$ and $p=0.999$. The asymptotic results in Section~\ref{sec:asymptotics} remain faster approximations for very large $n$, but are not required by the software.
+
+\subsection{Inversion and interpolation}
+
+Prediction quantiles are solved on the logarithmic multiplier scale
+\begin{equation}
+ w=\log\left(\frac{y}{\bar X}\right),
+ \qquad
+ q=\frac{e^w}{n+e^w}.
+ \label{eq:w_scale}
+\end{equation}
+The identity
+\begin{equation}
+ J_n\left(\frac{z}{n+z}\right)
+ =(n+1)\log\left(\frac{n+z}{n+1}\right)-\log z,
+ \qquad z=\frac y{\bar X},
+ \label{eq:J_z}
+\end{equation}
+is used away from the minimum, with \texttt{logaddexp} used to avoid rounding against the simplex boundary when $|w|$ is large. Near $w=0$, the coordinate $v=(n+1)q-1$ is evaluated using \texttt{expm1}, and $J_n$ is evaluated from \eqref{eq:J_v_series}; this avoids cancellation and gives $J_n(0)=0$ exactly in floating-point arithmetic. Root finding is bracketed. Lower probabilities and upper survival probabilities are inverted directly on the logarithmic probability scale in extreme tails, so $w$ remains available even when $y/\bar X$ is outside ordinary floating-point range.
+
+For repeated calculation, tabulate $w_{n,p}(d)=\log M_{n,p}(d)$ at every required integer $n$. When several probabilities are required at fixed $(n,d)$, the quadrature nodes, values of $\widetilde\ell_n$ and Jacobian factors are formed once; each further probability then requires only weighted sums and scalar root finding. For each stored $n$, a tensor-product interpolating spline is fitted directly to $w$ using $\log d$ and the logit of $p$ as coordinates, with degree four in the dispersion coordinate and degree five in the probability coordinate. No extrapolation is used outside the tabulated range.
+
+The distributed table contains every integer $n=3,\ldots,50$, together with
+\[
+ n\in\{55,60,65,70,75,80,90,100\}.
+\]
+At every stored sample size, the production grid has 50 dispersion values from $10^{-6}$ to 50 and 54 probabilities from 0.001 to 0.999. The packaged density-grid scalar backend is supported through $n=200$ within its resource range $t\le12000$; contour inversion is selected automatically above $n=200$ or when that resource range is exceeded.
+
+For $n\in\{3,5,10,20,50,55,75,100\}$ and log-uniform $d$ on $[0.025,1.5]$, 160 fixed-seed lower-tail checks over $p\in[0.001,0.2]$ gave median, 95th-percentile and maximum relative multiplier errors of $0.0001\%$, $0.0040\%$ and $0.0103\%$. The corresponding 160 upper-tail checks over $p\in[0.8,0.999]$ gave $0.0000\%$, $0.0002\%$ and $0.0039\%$. A separate 300-point holdout split by lower or upper tail and by $d\in[10^{-6},0.025]$, $[0.025,10]$ or $[10,50]$ had maximum error $0.0166\%$ across its six strata. Dense checks found no loss of monotonicity in $p$. Inputs outside $d\in[10^{-6},50]$ or $p\in[0.001,0.999]$ are rejected rather than extrapolated; exact scalar inversion remains preferable outside the validated interpolation region when its density argument remains within the supported range.
+
+\subsection{Support}
+
+For fixed $n$ and $t$, the conditional density in \eqref{eq:conditional_cdf} is non-zero only when $J_n(q)\le t$. Hence its support is $[q_-(t),q_+(t)]$. This identifies the finite integration interval whenever the conditional CDF itself is required.
+
+\begin{thebibliography}{99}
+\small
+
+\bibitem{Jewson2026}
+Jewson, S. and Sweeting, T. (2026). Including parameter uncertainty in loss distributions using calibrating priors. \emph{Annals of Actuarial Science}, 1--24.
+
+\bibitem{Krishnamoorthy2008}
+Krishnamoorthy, K., Mathew, T. and Mukherjee, S. (2008). Normal-based methods for a Gamma distribution: prediction and tolerance intervals and stress-strength reliability. \emph{Technometrics} \textbf{50}, 69--78.
+
+\bibitem{Wang2012}
+Wang, C.-M., Hannig, J. and Iyer, H. K. (2012). Fiducial prediction intervals. \emph{Journal of Statistical Planning and Inference} \textbf{142}, 1980--1990.
+
+\bibitem{Tian2022}
+Tian, Q., Nordman, D. J. and Meeker, W. Q. (2022). Methods to compute prediction intervals: a review and new results. \emph{Statistical Science} \textbf{37}, 580--597.
+
+\bibitem{Faulkenberry1973}
+Faulkenberry, G. D. (1973). A method of obtaining prediction intervals. \emph{Journal of the American Statistical Association} \textbf{68}, 433--435.
+
+\bibitem{Dunsmore1976}
+Dunsmore, I. R. (1976). A note on Faulkenberry's method of obtaining prediction intervals. \emph{Journal of the American Statistical Association} \textbf{71}, 193--194.
+
+\bibitem{Glaser1976}
+Glaser, R. E. (1976). The ratio of the geometric mean to the arithmetic mean for a random sample from a Gamma distribution. \emph{Journal of the American Statistical Association} \textbf{71}, 480--487.
+
+\bibitem{Nandi1980}
+Nandi, S. B. (1980). On the exact distribution of a normalized ratio of the weighted geometric mean to the unweighted arithmetic mean in samples from Gamma distributions. \emph{Journal of the American Statistical Association} \textbf{75}, 217--220.
+
+\bibitem{Keating1990}
+Keating, J. P., Glaser, R. E. and Ketchum, N. S. (1990). Testing hypotheses about the shape parameter of a Gamma distribution. \emph{Technometrics} \textbf{32}, 67--82.
+
+\bibitem{Vidoni1998}
+Vidoni, P. (1998). A note on modified estimative prediction limits and distributions. \emph{Biometrika} \textbf{85}, 949--953.
+
+\bibitem{UekiFueda2007}
+Ueki, M. and Fueda, K. (2007). Adjusting estimative prediction limits. \emph{Biometrika} \textbf{94}, 509--511.
+
+\bibitem{Proschan1963}
+Proschan, F. (1963). Theoretical explanation of observed decreasing failure rate. \emph{Technometrics} \textbf{5}, 375--383.
+
+\bibitem{CoxSnell1981}
+Cox, D. R. and Snell, E. J. (1981). \emph{Applied Statistics: Principles and Examples}. Chapman and Hall.
+
+\bibitem{DavisonHinkley1997}
+Davison, A. C. and Hinkley, D. V. (1997). \emph{Bootstrap Methods and Their Application}. Cambridge University Press.
+
+\end{thebibliography}
+
+\end{document}

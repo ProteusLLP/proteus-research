@@ -1,0 +1,23 @@
+{
+  "implementation": "Glaser/residue, packaged high-m density, and contour inversion",
+  "audit_mode": "paper",
+  "reps_per_cell": 10000000,
+  "files": [
+    "airconditioning_prediction_quantiles.csv",
+    "airconditioning_prediction_quantiles.tex",
+    "airconditioning_summary.json",
+    "coverage_table.csv",
+    "coverage_table.tex",
+    "density_anchors.csv",
+    "interpolation_holdout.csv",
+    "interpolation_holdout.json",
+    "interpolation_validation.csv",
+    "interpolation_validation.json",
+    "lookup_validation.json",
+    "monte_carlo_cells.csv",
+    "monte_carlo_summary.json",
+    "prediction_multipliers.csv",
+    "prediction_multipliers.tex",
+    "series_overlap.csv"
+  ]
+}
