@@ -101,6 +101,8 @@ normal approximations, generalised confidence quantities and fiducial methods; s
 for example, Krishnamoorthy, Mathew and Mukherjee \cite{Krishnamoorthy2008}, Wang, Hannig and Iyer \cite{Wang2012}, 
 and the review by Tian, Nordman and Meeker \cite{Tian2022}.
 
+Martin and Lingham \cite{MartinLingham2016} considered the same two-parameter Gamma prediction problem within the inferential-model framework. Their method constructs a prior-free predictive distribution by eliminating the nuisance parameters through auxiliary-variable marginalisation. For the Gamma model the resulting procedure is approximate rather than exactly calibrated in finite samples, and its implementation also uses an approximation to the distribution of the shape statistic. The construction developed here is different: conditioning on the augmented log-product statistic eliminates both unknown parameters exactly and gives finite-sample prediction intervals with the stated nominal coverage.
+
 In this paper the difficulty is addressed by using the sufficient statistic of the augmented sample, which includes the future observation. A candidate value $y$ is appended to the observed sample; after eliminating scale by normalisation, inference is conditioned on the scale-free log-product component of that statistic.
 Faulkenberry \cite{Faulkenberry1973} proposed conditioning a future observation on a sufficient statistic formed from the observed sample together with the future observation, while Dunsmore \cite{Dunsmore1976} showed that the existence and form of the resulting prediction interval require separate consideration. The construction here gives an explicit solution for the two-parameter Gamma family.
 
@@ -1374,6 +1376,9 @@ Wang, C.-M., Hannig, J. and Iyer, H. K. (2012). Fiducial prediction intervals. \
 
 \bibitem{Tian2022}
 Tian, Q., Nordman, D. J. and Meeker, W. Q. (2022). Methods to compute prediction intervals: a review and new results. \emph{Statistical Science} \textbf{37}, 580--597.
+
+\bibitem{MartinLingham2016}
+Martin, R. and Lingham, R. T. (2016). Prior-free probabilistic prediction of future observations. \emph{Technometrics} \textbf{58}, 225--235.
 
 \bibitem{Faulkenberry1973}
 Faulkenberry, G. D. (1973). A method of obtaining prediction intervals. \emph{Journal of the American Statistical Association} \textbf{68}, 433--435.
