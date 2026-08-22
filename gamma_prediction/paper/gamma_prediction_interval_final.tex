@@ -562,7 +562,7 @@ and write $F_{\alpha_d}^{(k)}(z)$ for the $k$th derivative of $F_\alpha(z)$ with
 
 \begin{proposition}[Large-sample expansion]
 \label{prop:large_n}
-Uniformly for $z$ in compact subsets of $(0,\infty)$,
+Uniformly over any fixed range $0<z_1\le z\le z_2<\infty$,
 \begin{equation}
  G_{n,d}\!\left(\frac{z}{n+z}\right)
  =F_{\alpha_d}(z)+\frac{B_d(z)}{n}+O(n^{-2}),
@@ -587,8 +587,8 @@ If $x_p$ is the $p$th quantile of the mean-one Gamma law, then
 \end{equation}
 \end{proposition}
 
-\paragraph{Derivation sketch.}
-Write $q=z/(n+z)$ in the conditional distribution \eqref{eq:conditional_cdf} and apply Laplace's method to the resulting numerator and normalising integral. The saddlepoint in the profiled shape direction is $\alpha_d$, determined by \eqref{eq:alpha_d}, and the augmentation shift is expanded using \eqref{eq:J_large_n}. The order-$n^{-1}$ expansion of the scale component gives the first line of \eqref{eq:B_d}. The quadratic fluctuation of the profiled shape likelihood contributes $-(2V_d)^{-1}F_{\alpha_d}^{(2)}(z)$; the displacement of the saddlepoint and the third-cumulant term give the coefficient of $F_{\alpha_d}^{(1)}(z)$. Finally, ordinary quantile perturbation applied to \eqref{eq:large_n_cdf} gives \eqref{eq:large_n_quantile}.
+\paragraph{Derivation.}
+Write $q=z/(n+z)$ in the conditional distribution \eqref{eq:conditional_cdf} and apply Laplace's method to the resulting numerator and normalising integral. The saddlepoint in the profiled shape direction is $\alpha_d$, determined by \eqref{eq:alpha_d}, and the augmentation shift is expanded using \eqref{eq:J_large_n}. The order-$n^{-1}$ expansion of the scale component gives the first line of \eqref{eq:B_d}. The quadratic fluctuation of the profiled shape likelihood contributes $-(2V_d)^{-1}F_{\alpha_d}^{(2)}(z)$; the displacement of the saddlepoint and the third-cumulant term give the coefficient of $F_{\alpha_d}^{(1)}(z)$. Since $d>0$ is fixed, the saddlepoint is interior and $V_d>0$. Over any fixed range $0<z_1\le z\le z_2<\infty$, the derivatives entering the numerator and denominator expansions are bounded, so the Laplace expansion is uniform through order $n^{-1}$, with remainder $O(n^{-2})$. Finally, ordinary quantile perturbation applied to \eqref{eq:large_n_cdf} gives \eqref{eq:large_n_quantile}.
 
 The leading term is the ordinary Gamma quantile obtained by matching the observed dispersion, but the order-$n^{-1}$ correction is not obtained by treating the fitted parameters as known. It comes from the exact conditional law and retains the contribution of parameter uncertainty. The same expansion can also be checked numerically against the exact saddlepoint-centred contour calculation described in Appendix~\ref{app:numerical_details}; after the order-$n^{-1}$ term is removed, the remaining difference behaves as $O(n^{-2})$.
 
@@ -654,8 +654,8 @@ then
 At $p=p_n^*$, $M_{n,p}(d)\to1$.
 \end{proposition}
 
-\paragraph{Derivation sketch.}
-Let the branch level satisfy $a=nd\rho+O(1)$ for fixed $\rho\ge0$. Substitution of the leading residue \eqref{eq:ell_tail} into \eqref{eq:lower_branch_formula}--\eqref{eq:upper_branch_formula} gives the limiting lower-branch probability and upper-branch survival probability
+\paragraph{Derivation.}
+Let the branch level satisfy $a=nd\rho+O(1)$ for fixed $\rho\ge0$. After writing $r=nd\,u$, the branch integrals are over the fixed interval $0\le u\le1$. The leading-residue ratios are bounded there by an integrable function independent of $d$, so dominated convergence justifies passing the leading residue \eqref{eq:ell_tail} through the integrals in \eqref{eq:lower_branch_formula}--\eqref{eq:upper_branch_formula}. This gives the limiting lower-branch probability and upper-branch survival probability
 \[
  \frac{n}{(n+1)(1+\rho)^{n-1}}
  \quad\hbox{and}\quad
@@ -690,8 +690,8 @@ For fixed $n\ge2$ and $d>0$,
 \end{align}
 \end{proposition}
 
-\paragraph{Derivation sketch.}
-On either branch, substitute the leading residue \eqref{eq:ell_tail} into \eqref{eq:lower_branch_formula} or \eqref{eq:upper_branch_formula} and retain the finite integral $I_n(nd)$. On the upper branch, \eqref{eq:J_z} gives
+\paragraph{Derivation.}
+On either branch, substitute the leading residue \eqref{eq:ell_tail} into \eqref{eq:lower_branch_formula} or \eqref{eq:upper_branch_formula} and retain the finite integral $I_n(nd)$. Here the integration variable remains in the fixed interval $0\le r\le nd$, so the leading-residue approximation is uniform in $r$ and may be integrated term by term. On the upper branch, \eqref{eq:J_z} gives
 \[
  J_n\!\left(\frac{z}{n+z}\right)
  =n\log z-(n+1)\log(n+1)+o(1),
