@@ -268,7 +268,7 @@ def validate_table_interpolation(output: Path) -> None:
         probability_max = math.log(p_max) - math.log1p(-p_max)
         for _ in range(checks):
             n = int(holdout_rng.choice(validation_n))
-            d = float(np.exp(rng.uniform(np.log(d_min), np.log(d_max))))
+            d = float(np.exp(holdout_rng.uniform(np.log(d_min), np.log(d_max))))
             probability = holdout_rng.uniform(probability_min, probability_max)
             p = float(1.0 / (1.0 + math.exp(-probability)))
             interpolated = table.log_multiplier_at(n, d, p)
