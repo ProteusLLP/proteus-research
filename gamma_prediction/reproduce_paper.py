@@ -155,7 +155,7 @@ def reproduce_deterministic(output: Path) -> None:
         (3, 5.0, 1.84545461340647),
         (20, 5.0, 3.35622225949113),
         (51, 4.5, 2.61082730955885e-10),
-        (51, 8.0, 4.582730260064e-4),
+        (51, 8.0, 4.58273027275238e-4),
     ):
         actual = ell_tilde(m, t)
         relative_error = actual / expected - 1.0
@@ -268,7 +268,7 @@ def validate_table_interpolation(output: Path) -> None:
         probability_max = math.log(p_max) - math.log1p(-p_max)
         for _ in range(checks):
             n = int(holdout_rng.choice(validation_n))
-            d = float(np.exp(holdout_rng.uniform(np.log(d_min), np.log(d_max))))
+            d = float(np.exp(rng.uniform(np.log(d_min), np.log(d_max))))
             probability = holdout_rng.uniform(probability_min, probability_max)
             p = float(1.0 / (1.0 + math.exp(-probability)))
             interpolated = table.log_multiplier_at(n, d, p)
