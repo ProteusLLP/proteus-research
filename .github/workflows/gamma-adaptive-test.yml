@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - agent/add-martin-lingham-reference
+  pull_request:
+    branches:
+      - main
 
 jobs:
   test:
