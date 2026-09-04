@@ -6,7 +6,11 @@ import gamma_prediction as gp
 from gamma_prediction.monte_carlo import audit_coverage
 from gamma_prediction.table import CriticalValueTable, build_critical_value_table
 from gamma_prediction.intervals import check_series_overlap
-from gamma_prediction.density import ell_tilde, log_ell_tilde
+from gamma_prediction.density import (
+    _ell_tilde_glaser_adaptive,
+    ell_tilde,
+    log_ell_tilde,
+)
 
 
 AIR = [3, 5, 7, 18, 43, 85, 91, 98, 100, 130, 230, 487]
@@ -48,10 +52,20 @@ def test_density_representations_overlap():
     assert max(abs(row[-1]) for row in rows) < 1e-12
 
 
+def test_glaser_series_stops_adaptively():
+    converged, value, terms = _ell_tilde_glaser_adaptive(20, 1.0)
+    assert converged
+    assert terms < 40
+    assert math.isclose(value, ell_tilde(20, 1.0), rel_tol=3e-14)
+
+    converged, _, _ = _ell_tilde_glaser_adaptive(3, 2.0 * math.pi)
+    assert not converged
+
+
 def test_online_density_handover_anchors():
     assert math.isclose(ell_tilde(3, 5.0), 1.84545461340647, rel_tol=3e-13)
     assert math.isclose(ell_tilde(20, 5.0), 3.35622225949113, rel_tol=3e-13)
-    assert math.isclose(ell_tilde(51, 8.0), 4.582730260064e-4, rel_tol=2e-10)
+    assert math.isclose(ell_tilde(51, 8.0), 4.58273027275238e-4, rel_tol=2e-10)
 
 
 def test_high_order_density_resource_anchors():

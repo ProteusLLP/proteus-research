@@ -101,6 +101,8 @@ normal approximations, generalised confidence quantities and fiducial methods; s
 for example, Krishnamoorthy, Mathew and Mukherjee \cite{Krishnamoorthy2008}, Wang, Hannig and Iyer \cite{Wang2012}, 
 and the review by Tian, Nordman and Meeker \cite{Tian2022}.
 
+Martin and Lingham \cite{MartinLingham2016} considered the same two-parameter Gamma prediction problem within the inferential-model framework. Their method constructs a prior-free predictive distribution by eliminating the nuisance parameters through auxiliary-variable marginalisation. For the Gamma model the resulting procedure is approximate rather than exactly calibrated in finite samples, and its implementation also uses an approximation to the distribution of the shape statistic. The construction developed here is different: conditioning on the augmented log-product statistic eliminates both unknown parameters exactly and gives finite-sample prediction intervals with the stated nominal coverage.
+
 In this paper the difficulty is addressed by using the sufficient statistic of the augmented sample, which includes the future observation. A candidate value $y$ is appended to the observed sample; after eliminating scale by normalisation, inference is conditioned on the scale-free log-product component of that statistic.
 Faulkenberry \cite{Faulkenberry1973} proposed conditioning a future observation on a sufficient statistic formed from the observed sample together with the future observation, while Dunsmore \cite{Dunsmore1976} showed that the existence and form of the resulting prediction interval require separate consideration. The construction here gives an explicit solution for the two-parameter Gamma family.
 
@@ -560,7 +562,7 @@ and write $F_{\alpha_d}^{(k)}(z)$ for the $k$th derivative of $F_\alpha(z)$ with
 
 \begin{proposition}[Large-sample expansion]
 \label{prop:large_n}
-Uniformly for $z$ in compact subsets of $(0,\infty)$,
+Uniformly over any fixed range $0<z_1\le z\le z_2<\infty$,
 \begin{equation}
  G_{n,d}\!\left(\frac{z}{n+z}\right)
  =F_{\alpha_d}(z)+\frac{B_d(z)}{n}+O(n^{-2}),
@@ -585,8 +587,8 @@ If $x_p$ is the $p$th quantile of the mean-one Gamma law, then
 \end{equation}
 \end{proposition}
 
-\paragraph{Derivation sketch.}
-Write $q=z/(n+z)$ in the conditional distribution \eqref{eq:conditional_cdf} and apply Laplace's method to the resulting numerator and normalising integral. The saddlepoint in the profiled shape direction is $\alpha_d$, determined by \eqref{eq:alpha_d}, and the augmentation shift is expanded using \eqref{eq:J_large_n}. The order-$n^{-1}$ expansion of the scale component gives the first line of \eqref{eq:B_d}. The quadratic fluctuation of the profiled shape likelihood contributes $-(2V_d)^{-1}F_{\alpha_d}^{(2)}(z)$; the displacement of the saddlepoint and the third-cumulant term give the coefficient of $F_{\alpha_d}^{(1)}(z)$. Finally, ordinary quantile perturbation applied to \eqref{eq:large_n_cdf} gives \eqref{eq:large_n_quantile}.
+\paragraph{Derivation.}
+Write $q=z/(n+z)$ in the conditional distribution \eqref{eq:conditional_cdf} and apply Laplace's method to the resulting numerator and normalising integral. The saddlepoint in the profiled shape direction is $\alpha_d$, determined by \eqref{eq:alpha_d}, and the augmentation shift is expanded using \eqref{eq:J_large_n}. The order-$n^{-1}$ expansion of the scale component gives the first line of \eqref{eq:B_d}. The quadratic fluctuation of the profiled shape likelihood contributes $-(2V_d)^{-1}F_{\alpha_d}^{(2)}(z)$; the displacement of the saddlepoint and the third-cumulant term give the coefficient of $F_{\alpha_d}^{(1)}(z)$. Since $d>0$ is fixed, the saddlepoint is interior and $V_d>0$. Over any fixed range $0<z_1\le z\le z_2<\infty$, the derivatives entering the numerator and denominator expansions are bounded, so the Laplace expansion is uniform through order $n^{-1}$, with remainder $O(n^{-2})$. Finally, ordinary quantile perturbation applied to \eqref{eq:large_n_cdf} gives \eqref{eq:large_n_quantile}.
 
 The leading term is the ordinary Gamma quantile obtained by matching the observed dispersion, but the order-$n^{-1}$ correction is not obtained by treating the fitted parameters as known. It comes from the exact conditional law and retains the contribution of parameter uncertainty. The same expansion can also be checked numerically against the exact saddlepoint-centred contour calculation described in Appendix~\ref{app:numerical_details}; after the order-$n^{-1}$ term is removed, the remaining difference behaves as $O(n^{-2})$.
 
@@ -652,8 +654,8 @@ then
 At $p=p_n^*$, $M_{n,p}(d)\to1$.
 \end{proposition}
 
-\paragraph{Derivation sketch.}
-Let the branch level satisfy $a=nd\rho+O(1)$ for fixed $\rho\ge0$. Substitution of the leading residue \eqref{eq:ell_tail} into \eqref{eq:lower_branch_formula}--\eqref{eq:upper_branch_formula} gives the limiting lower-branch probability and upper-branch survival probability
+\paragraph{Derivation.}
+Let the branch level satisfy $a=nd\rho+O(1)$ for fixed $\rho\ge0$. After writing $r=nd\,u$, the branch integrals are over the fixed interval $0\le u\le1$. The leading-residue ratios are bounded there by an integrable function independent of $d$, so dominated convergence justifies passing the leading residue \eqref{eq:ell_tail} through the integrals in \eqref{eq:lower_branch_formula}--\eqref{eq:upper_branch_formula}. This gives the limiting lower-branch probability and upper-branch survival probability
 \[
  \frac{n}{(n+1)(1+\rho)^{n-1}}
  \quad\hbox{and}\quad
@@ -688,8 +690,8 @@ For fixed $n\ge2$ and $d>0$,
 \end{align}
 \end{proposition}
 
-\paragraph{Derivation sketch.}
-On either branch, substitute the leading residue \eqref{eq:ell_tail} into \eqref{eq:lower_branch_formula} or \eqref{eq:upper_branch_formula} and retain the finite integral $I_n(nd)$. On the upper branch, \eqref{eq:J_z} gives
+\paragraph{Derivation.}
+On either branch, substitute the leading residue \eqref{eq:ell_tail} into \eqref{eq:lower_branch_formula} or \eqref{eq:upper_branch_formula} and retain the finite integral $I_n(nd)$. Here the integration variable remains in the fixed interval $0\le r\le nd$, so the leading-residue approximation is uniform in $r$ and may be integrated term by term. On the upper branch, \eqref{eq:J_z} gives
 \[
  J_n\!\left(\frac{z}{n+z}\right)
  =n\log z-(n+1)\log(n+1)+o(1),
@@ -1275,9 +1277,9 @@ which proves the tail form \eqref{eq:ell_tail}.
 
 \subsection{Evaluation of \texorpdfstring{$\ell_m$}{ell-m}}
 
-For $m\le51$, 180 terms of \eqref{eq:glaser_series} are used in the central region, with the residue expansion \eqref{eq:residue_series} used away from it. The Glaser-type series is used wherever its 160- and 180-term sums agree to the numerical tolerance; residues are added until three successive terms are negligible relative to the accumulated sum. To evaluate residue polynomials stably in standard double precision, the analytic factor $H_{m,r}$ is written as the product of its $m-1$ Gamma-ratio factors. Each factor is normalised and expanded separately, and the resulting short Taylor series are combined by convolution.
+For $m\le51$, the Glaser series \eqref{eq:glaser_series} is summed adaptively within its proven convergence region $0<t<2\pi$. Terms are accumulated until eight successive contributions have absolute value below $5\times10^{-14}$ times the magnitude of the accumulated sum. A maximum of 180 terms is retained only as a safety cap: if this convergence criterion is not met before the cap, or if $t\ge2\pi$, evaluation switches to the residue expansion \eqref{eq:residue_series}. In the region where the adaptive criterion is met, the resulting values agree with the corresponding 180-term truncation to approximately standard double-precision accuracy, while ordinarily requiring only a small fraction of the available terms. Residues are added until three successive terms are negligible relative to the accumulated sum. To evaluate residue polynomials stably in standard double precision, the analytic factor $H_{m,r}$ is written as the product of its $m-1$ Gamma-ratio factors. Each factor is normalised and expanded separately, and the resulting short Taylor series are combined by convolution.
 
-For $52\le m\le201$, direct residue coefficient formation becomes ill-conditioned in the moderate tail. The central Glaser series remains stable below $t=5.5$. Above this point the runtime uses a packaged shape-preserving interpolation of $\log\widetilde\ell_m(t)$ on 1,400 logarithmically spaced points through $t=12000$. The grid is generated offline by saddlepoint-tilted pointwise inversion of \eqref{eq:laplace_transform}; independent off-grid checks at representative values of $m$ gave maximum relative density error below $2\times10^{-8}$. Runtime evaluation of this backend uses only standard NumPy/SciPy double-precision arithmetic: it performs no Fourier inversion and has no extended-arithmetic dependency. The offline generator is distributed with the software.
+For $52\le m\le201$, the same adaptive Glaser summation is used in the central region below the packaged density grid. Direct residue coefficient formation becomes ill-conditioned in the moderate tail, so above this region the runtime uses a packaged shape-preserving interpolation of $\log\widetilde\ell_m(t)$ on 1,400 logarithmically spaced points through $t=12000$. The grid is generated offline by saddlepoint-tilted pointwise inversion of \eqref{eq:laplace_transform}; independent off-grid checks at representative values of $m$ gave maximum relative density error below $2\times10^{-8}$. Runtime evaluation of this backend uses only standard NumPy/SciPy double-precision arithmetic: it performs no Fourier inversion and has no extended-arithmetic dependency. The offline generator is distributed with the software.
 
 \subsection{Branch coordinates and quadrature}
 
@@ -1374,6 +1376,9 @@ Wang, C.-M., Hannig, J. and Iyer, H. K. (2012). Fiducial prediction intervals. \
 
 \bibitem{Tian2022}
 Tian, Q., Nordman, D. J. and Meeker, W. Q. (2022). Methods to compute prediction intervals: a review and new results. \emph{Statistical Science} \textbf{37}, 580--597.
+
+\bibitem{MartinLingham2016}
+Martin, R. and Lingham, R. T. (2016). Prior-free probabilistic prediction of future observations. \emph{Technometrics} \textbf{58}, 225--235.
 
 \bibitem{Faulkenberry1973}
 Faulkenberry, G. D. (1973). A method of obtaining prediction intervals. \emph{Journal of the American Statistical Association} \textbf{68}, 433--435.

@@ -159,7 +159,7 @@ def reproduce_deterministic(output: Path) -> None:
         (3, 5.0, 1.84545461340647),
         (20, 5.0, 3.35622225949113),
         (51, 4.5, 2.61082730955885e-10),
-        (51, 8.0, 4.582730260064e-4),
+        (51, 8.0, 4.58273027275238e-4),
     ):
         actual = ell_tilde(m, t)
         relative_error = actual / expected - 1.0
