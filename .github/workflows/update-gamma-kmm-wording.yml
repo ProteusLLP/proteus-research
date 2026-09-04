@@ -1,0 +1,41 @@
+name: Update Gamma KMM wording
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/update-gamma-kmm-wording.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update wording
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('gamma_prediction/paper/gamma_prediction_interval_final.tex')
+          s = p.read_text()
+          old = "For comparison, Krishnamoorthy, Mathew and Mukherjee \\cite{Krishnamoorthy2008} use the Wilson--Hilferty cube-root approximation."
+          new = "For comparison, we apply the Wilson--Hilferty cube-root approximation proposed by Krishnamoorthy, Mathew and Mukherjee \\cite{Krishnamoorthy2008} to these data."
+          if old not in s:
+              raise SystemExit('Target sentence not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+      - name: Build PDF
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: gamma_prediction_interval_final.tex
+          working_directory: gamma_prediction/paper
+          latexmk_use_xelatex: false
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gamma_prediction/paper/gamma_prediction_interval_final.tex gamma_prediction/paper/gamma_prediction_interval_final.pdf
+          git commit -m "Clarify application of KMM comparison method"
+          git push
