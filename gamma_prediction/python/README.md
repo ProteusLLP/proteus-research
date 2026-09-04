@@ -58,9 +58,12 @@ corresponding lower-tail transformation. This reduces the refined table by
 84.1% relative to the former 107-level grid. Fixed-seed validation gives
 maximum relative multiplier errors of `0.218 ppm`, `0.030 ppm`, and `0.107 ppm`
 for the lower, central, and upper critical levels. The maximum across three
-independent dispersion-boundary strata is `0.498 ppm`. Inputs beyond the table
-boundaries are rejected rather than extrapolated. The scalar prediction API
-performs the exact numerical inversion and does not use this interpolated table.
+independent dispersion-boundary strata is `0.498 ppm`. A systematic check at
+all 93,296 transformed dispersion-cell midpoints has maximum error `3.18 ppm`;
+the random-holdout result is therefore not a global bound. Inputs beyond the
+table boundaries are rejected rather than extrapolated. The scalar prediction
+API performs the exact numerical inversion and does not use this interpolated
+table.
 
 The offline high-order resource can be reproduced with:
 

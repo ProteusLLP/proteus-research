@@ -114,9 +114,12 @@ gives:
 An independent 300-point holdout samples all 17 levels across low, interior and
 high dispersion ranges. The largest maximum among its three strata is `0.498 ppm`.
 The full holdout is stored in `reproduced_results/interpolation_holdout.csv`.
+A systematic 93,296-point check at the transformed midpoint of every
+dispersion cell, for all 56 stored sample sizes and all 17 probability levels,
+gave maximum error `3.18 ppm`, at `n=3`, `d=0.0118921`, and `p=0.0025`.
+Thus, the random-holdout maximum is not presented as a global error bound.
 Dense checks found no loss of monotonicity in probability. The table rejects
-`d` or `p` outside its rectangular domain rather than extrapolating. The audit
-includes representative sample sizes through `n=100`.
+`d` or `p` outside its rectangular domain rather than extrapolating.
 
 Table construction now caches the regularised quadrature nodes, density values
 and Jacobian once for each `(n,d)`, then inverts all requested probabilities
@@ -128,7 +131,10 @@ For `m=52..201`, the repaired backend uses the online Glaser series below
 `t=5.5` and a packaged 1,400-node interpolation of the tilted log density up to
 `t=12000`. The resource is generated offline by saddlepoint-tilted pointwise
 inversion. Representative independent holdouts have maximum relative density
-error below `2e-8`; runtime evaluation performs no Fourier inversion.
+error below `2e-8`; runtime evaluation performs no Fourier inversion. The
+small-`t` series is evaluated directly on the log scale when its density would
+underflow in float64. For example, `log_ell_tilde(201, 0.0002)=-1218.6292`
+remains finite.
 
 Above `n=200`, or if a lower-order calculation exceeds the packaged density
 range, scalar evaluation automatically uses saddlepoint-centred contour

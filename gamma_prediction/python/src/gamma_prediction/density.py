@@ -49,10 +49,10 @@ def _high_m_log_ell_tilde(m: int, t: float) -> float:
     if t < t_grid[0]:
         if t <= 0.0:
             return -math.inf
-        converged, value, _ = _ell_tilde_glaser_adaptive(m, t)
-        if not converged or value <= 0.0:
+        converged, log_value, _ = _log_ell_tilde_glaser_adaptive(m, t)
+        if not converged or not math.isfinite(log_value):
             raise ArithmeticError(f"invalid Glaser density for m={m}, t={t}")
-        return math.log(value)
+        return log_value
     if t > t_grid[-1]:
         raise ValueError(f"high-order density evaluation supports t <= {t_grid[-1]:g}")
     return float(_high_m_log_density_interpolator(m)(math.log(t)))
@@ -166,6 +166,46 @@ def _ell_tilde_glaser_adaptive(
 
     value = leading * t ** (nu - 1.0) * total
     return False, value, max_terms
+
+
+def _log_ell_tilde_glaser_adaptive(
+    m: int,
+    t: float,
+    relative_tolerance: float = GLASER_RELATIVE_TOLERANCE,
+    max_terms: int = GLASER_MAX_TERMS,
+    negligible_terms: int = GLASER_NEGLIGIBLE_TERMS,
+) -> tuple[bool, float, int]:
+    """Evaluate the logarithm of the Glaser series without underflow."""
+    if t <= 0.0:
+        return True, -math.inf, 0
+    if t >= 2.0 * math.pi:
+        return False, math.nan, 0
+
+    nu, leading, coefficients = glaser_coefficients(m, max_terms)
+    total = float(coefficients[0])
+    power = 1.0
+    negligible = 0
+
+    for index in range(1, max_terms + 1):
+        power *= t
+        term = float(coefficients[index]) * power
+        total += term
+        scale = max(abs(total), np.finfo(float).tiny)
+        if abs(term) <= relative_tolerance * scale:
+            negligible += 1
+            if negligible >= negligible_terms:
+                if not math.isfinite(total) or total <= 0.0:
+                    return False, math.nan, index
+                log_value = (
+                    math.log(leading)
+                    + (nu - 1.0) * math.log(t)
+                    + math.log(total)
+                )
+                return math.isfinite(log_value), log_value, index
+        else:
+            negligible = 0
+
+    return False, math.nan, max_terms
 
 
 @lru_cache(maxsize=None)

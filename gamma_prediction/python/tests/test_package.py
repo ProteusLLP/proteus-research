@@ -80,6 +80,7 @@ def test_high_order_density_resource_anchors():
         assert math.isclose(ell_tilde(m, t), expected, rel_tol=6e-8)
 
     log_anchors = (
+        (201, 2e-4, -1218.6292380531224),
         (151, 10.0, -87.76253693080771),
         (201, 10.0, -145.81037170753842),
         (201, 100.0, 95.76745449470269),
