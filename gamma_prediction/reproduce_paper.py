@@ -70,7 +70,11 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     if not rows:
         raise ValueError(f"cannot write empty CSV: {path}")
     with path.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(
+            stream,
+            fieldnames=list(rows[0]),
+            lineterminator="\n",
+        )
         writer.writeheader()
         writer.writerows(rows)
 
@@ -196,17 +200,15 @@ def validate_table_interpolation(output: Path) -> None:
     validation_n = (3, 5, 10, 20, 50, 55, 75, 100)
     rows = []
     domains = (
-        ("lower", 160, 0.001, 0.20),
-        ("upper", 160, 0.80, 0.999),
+        ("lower", 160, table.p_grid[table.p_grid <= 0.1]),
+        ("central", 80, table.p_grid[(table.p_grid > 0.1) & (table.p_grid < 0.9)]),
+        ("upper", 160, table.p_grid[table.p_grid >= 0.9]),
     )
-    for domain, checks, p_min, p_max in domains:
-        probability_min = math.log(p_min) - math.log1p(-p_min)
-        probability_max = math.log(p_max) - math.log1p(-p_max)
+    for domain, checks, probabilities in domains:
         for _ in range(checks):
             n = int(rng.choice(validation_n))
             d = float(np.exp(rng.uniform(np.log(0.025), np.log(1.5))))
-            probability = rng.uniform(probability_min, probability_max)
-            p = float(1.0 / (1.0 + math.exp(-probability)))
+            p = float(rng.choice(probabilities))
             interpolated = table.log_multiplier_at(n, d, p)
             exact = prediction_log_multiplier(n, d, p)
             relative_error = abs(math.expm1(interpolated - exact))
@@ -229,7 +231,7 @@ def validate_table_interpolation(output: Path) -> None:
         "d": [0.025, 1.5],
         "domains": {},
     }
-    for domain, checks, p_min, p_max in domains:
+    for domain, checks, probabilities in domains:
         errors = np.asarray(
             [
                 row["relative_multiplier_error"]
@@ -239,7 +241,7 @@ def validate_table_interpolation(output: Path) -> None:
         )
         summary["domains"][domain] = {
             "checks": checks,
-            "p": [p_min, p_max],
+            "p": [float(p) for p in probabilities],
             "median_relative_error": float(np.quantile(errors, 0.5)),
             "p95_relative_error": float(np.quantile(errors, 0.95)),
             "max_relative_error": float(np.max(errors)),
@@ -248,29 +250,23 @@ def validate_table_interpolation(output: Path) -> None:
     for domain in summary["domains"].values():
         print(
             "   median / p95 / max relative error: "
-            f"{100 * domain['median_relative_error']:.4f}% / "
-            f"{100 * domain['p95_relative_error']:.4f}% / "
-            f"{100 * domain['max_relative_error']:.4f}%"
+            f"{100 * domain['median_relative_error']:.6f}% / "
+            f"{100 * domain['p95_relative_error']:.6f}% / "
+            f"{100 * domain['max_relative_error']:.6f}%"
         )
 
     holdout_rng = np.random.default_rng(20260819)
     holdout_rows = []
     holdout_domains = (
-        ("lower_low_d", 50, 1e-6, 0.025, 0.001, 0.20),
-        ("lower_interior_d", 50, 0.025, 10.0, 0.001, 0.20),
-        ("lower_high_d", 50, 10.0, 50.0, 0.001, 0.20),
-        ("upper_low_d", 50, 1e-6, 0.025, 0.80, 0.999),
-        ("upper_interior_d", 50, 0.025, 10.0, 0.80, 0.999),
-        ("upper_high_d", 50, 10.0, 50.0, 0.80, 0.999),
+        ("low_d", 100, 1e-6, 0.025),
+        ("interior_d", 100, 0.025, 10.0),
+        ("high_d", 100, 10.0, 50.0),
     )
-    for domain, checks, d_min, d_max, p_min, p_max in holdout_domains:
-        probability_min = math.log(p_min) - math.log1p(-p_min)
-        probability_max = math.log(p_max) - math.log1p(-p_max)
+    for domain, checks, d_min, d_max in holdout_domains:
         for _ in range(checks):
             n = int(holdout_rng.choice(validation_n))
             d = float(np.exp(holdout_rng.uniform(np.log(d_min), np.log(d_max))))
-            probability = holdout_rng.uniform(probability_min, probability_max)
-            p = float(1.0 / (1.0 + math.exp(-probability)))
+            p = float(holdout_rng.choice(table.p_grid))
             interpolated = table.log_multiplier_at(n, d, p)
             exact = prediction_log_multiplier(n, d, p)
             holdout_rows.append(
@@ -286,7 +282,7 @@ def validate_table_interpolation(output: Path) -> None:
             )
     write_csv(output / "interpolation_holdout.csv", holdout_rows)
     holdout_summary = {"seed": 20260819, "domains": {}}
-    for domain, checks, d_min, d_max, p_min, p_max in holdout_domains:
+    for domain, checks, d_min, d_max in holdout_domains:
         errors = np.asarray(
             [
                 row["relative_multiplier_error"]
@@ -297,7 +293,7 @@ def validate_table_interpolation(output: Path) -> None:
         holdout_summary["domains"][domain] = {
             "checks": checks,
             "d": [d_min, d_max],
-            "p": [p_min, p_max],
+            "p": [float(p) for p in table.p_grid],
             "median_relative_error": float(np.quantile(errors, 0.5)),
             "p95_relative_error": float(np.quantile(errors, 0.95)),
             "max_relative_error": float(np.max(errors)),

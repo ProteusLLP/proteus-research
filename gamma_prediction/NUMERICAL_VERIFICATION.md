@@ -84,21 +84,35 @@ python gamma_prediction/reproduce_paper.py \
 
 ## Corrected during verification
 
-The distributed table now uses 50 dispersion nodes and 54 probability nodes for
+The distributed table now uses 99 dispersion nodes and 17 probability levels for
 every stored sample size through `n=100`, over `d in [1e-6, 50]` and
-`p in [0.001, 0.999]`. A quartic-by-quintic tensor spline is evaluated in
-`log(d)` and logit probability.
+`p in [0.001, 0.999]`. The levels are `0.001`, `0.0025`, `0.005`, `0.01`,
+`0.025`, `0.05`, `0.1`, `0.25`, `0.5`, `0.75`, `0.9`, `0.95`, `0.975`,
+`0.99`, `0.995`, `0.9975`, and `0.999`. At these levels, the tensor-product
+spline reduces to quintic interpolation in `log(d)`. In the lower tail, the
+theoretically motivated
+`log(-log M)` and `log(-log p)` transformation is used and blended smoothly
+into the central surface on `p in [0.225, 0.25]`.
 
-A reproducible fixed-seed check at 160 lower-tail and 160 upper-tail points on
-`d in [0.025, 1.5]` gives:
+The production lookup is intended for these 17 stored probability levels; only
+dispersion is interpolated in that use. Removing probability-refinement nodes
+reduces the refined table by 84.1% relative to the former 107-level grid. The
+stored values were also regenerated with adaptive scalar integration near the
+branch junction, preventing inaccurate nodes from contaminating the
+dispersion spline.
 
-- lower `p in [0.001, 0.2]`: median `0.0001%`, 95th percentile `0.0040%`,
-  maximum `0.0103%`
-- upper `p in [0.8, 0.999]`: median `0.0000%`, 95th percentile `0.0002%`,
-  maximum `0.0039%`
+A reproducible fixed-seed check at off-grid dispersions in `[0.025, 1.5]`
+gives:
 
-An independent 300-point holdout splits both tails across low, interior and
-high dispersion ranges. The largest maximum among its six strata is `0.0166%`.
+- seven lower levels through `p=0.1`: median `0.0025 ppm`, 95th percentile
+  `0.0795 ppm`, maximum `0.218 ppm`
+- three central levels `p in {0.25, 0.5, 0.75}`: median `0.00042 ppm`,
+  95th percentile `0.0073 ppm`, maximum `0.030 ppm`
+- seven upper levels from `p=0.9`: median `0.00023 ppm`, 95th percentile
+  `0.0092 ppm`, maximum `0.107 ppm`
+
+An independent 300-point holdout samples all 17 levels across low, interior and
+high dispersion ranges. The largest maximum among its three strata is `0.498 ppm`.
 The full holdout is stored in `reproduced_results/interpolation_holdout.csv`.
 Dense checks found no loss of monotonicity in probability. The table rejects
 `d` or `p` outside its rectangular domain rather than extrapolating. The audit

@@ -394,7 +394,7 @@ class PredictionQuantileWorkspace:
                         raise RuntimeError(
                             "Could not bracket upper prediction quantile"
                         )
-            result[index] = optimize.brentq(
+            root = optimize.brentq(
                 objective,
                 lo,
                 hi,
@@ -402,6 +402,15 @@ class PredictionQuantileWorkspace:
                 rtol=2e-13,
                 maxiter=100,
             )
+            # Fixed quadrature is least reliable when a high-dispersion root
+            # lies close to the branch junction at w=0. In that small region,
+            # use the adaptive scalar integral rather than allowing one
+            # inaccurate grid value to contaminate the dispersion spline.
+            if self.d >= 1.0 and abs(root) < 0.25:
+                root = _prediction_log_multiplier_density(
+                    self.n, self.d, float(p)
+                )
+            result[index] = root
         return result
 
 

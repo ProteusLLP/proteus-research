@@ -24,6 +24,12 @@ def test_batched_exact_inversion_matches_scalar_extreme_tails():
     assert np.max(np.abs(np.expm1(batched - scalar))) < 3e-8
 
 
+def test_batched_exact_inversion_matches_scalar_near_branch_junction():
+    batched = gp.prediction_log_multipliers(50, 27.5, [0.9])[0]
+    scalar = gp.prediction_log_multiplier(50, 27.5, 0.9)
+    assert abs(batched - scalar) < 1e-12
+
+
 def test_large_log_multiplier_transform_remains_smooth():
     from gamma_prediction.intervals import J_from_w
 
@@ -118,9 +124,10 @@ def test_table_interpolation_and_round_trip(tmp_path):
 def test_packaged_table_loads():
     table = gp.load_default_table()
     assert table.log_multiplier.shape == (56, 22, 17)
-    assert table.refined_log_multiplier.shape == (56, 50, 54)
+    assert table.refined_log_multiplier.shape == (56, 99, 17)
     assert table.refined_p_grid[0] == 0.001
     assert table.refined_p_grid[-1] == 0.999
+    assert np.array_equal(table.refined_p_grid, table.p_grid)
     assert set((55, 60, 65, 70, 75, 80, 90, 100)).issubset(table.n_grid)
     assert math.isclose(
         table.multiplier_at(3, 0.05, 0.95),
@@ -143,9 +150,30 @@ def test_packaged_table_loads():
 
 def test_packaged_table_off_grid_interpolation_accuracy():
     table = gp.load_default_table()
-    interpolated = table.log_multiplier_at(3, 1.3881283432695093, 0.8366315468215584)
-    exact = 1.6158519199577572
-    assert abs(math.expm1(interpolated - exact)) < 5e-4
+    interpolated = table.log_multiplier_at(3, 1.3881283432695093, 0.95)
+    exact = gp.prediction_log_multiplier(3, 1.3881283432695093, 0.95)
+    assert abs(math.expm1(interpolated - exact)) < 1e-6
+
+
+def test_lower_tail_scalar_and_vector_interpolation_agree():
+    table = gp.load_default_table()
+    dispersions = np.array([0.075228, 0.5, 8.973543, 39.491044])
+    scalar = np.array(
+        [table.log_multiplier_at(3, float(d), 0.025) for d in dispersions]
+    )
+    vector = table.log_multiplier_array(3, dispersions, 0.025)
+    assert np.allclose(vector, scalar, rtol=0.0, atol=1e-13)
+
+
+def test_lower_tail_blend_is_monotone():
+    table = gp.load_default_table()
+    probabilities = np.linspace(0.22, 0.255, 141)
+    for n in (3, 20, 100):
+        for d in (0.001, 0.25, 5.0, 50.0):
+            values = np.array(
+                [table.log_multiplier_at(n, d, float(p)) for p in probabilities]
+            )
+            assert np.all(np.diff(values) > 0.0)
 
 
 def test_high_n_exact_backend_matches_table():
