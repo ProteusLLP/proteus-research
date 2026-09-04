@@ -17,7 +17,9 @@ from scipy import interpolate, special
 
 
 MAX_M = 201
-GLASER_TERMS = 180
+GLASER_MAX_TERMS = 180
+GLASER_RELATIVE_TOLERANCE = 5e-14
+GLASER_NEGLIGIBLE_TERMS = 8
 HIGH_M_DENSITY_PATH = (
     Path(__file__).resolve().parent / "data" / "high_m_log_density.npz"
 )
@@ -47,11 +49,10 @@ def _high_m_log_ell_tilde(m: int, t: float) -> float:
     if t < t_grid[0]:
         if t <= 0.0:
             return -math.inf
-        nu, leading, coefficients = glaser_coefficients(m, GLASER_TERMS)
-        polynomial = float(np.polynomial.polynomial.polyval(t, coefficients))
-        if polynomial <= 0.0:
+        converged, value, _ = _ell_tilde_glaser_adaptive(m, t)
+        if not converged or value <= 0.0:
             raise ArithmeticError(f"invalid Glaser density for m={m}, t={t}")
-        return math.log(leading) + (nu - 1.0) * math.log(t) + math.log(polynomial)
+        return math.log(value)
     if t > t_grid[-1]:
         raise ValueError(f"high-order density evaluation supports t <= {t_grid[-1]:g}")
     return float(_high_m_log_density_interpolator(m)(math.log(t)))
@@ -63,7 +64,7 @@ def _high_m_ell_tilde(m: int, t: float) -> float:
 
 @lru_cache(maxsize=None)
 def glaser_coefficients(
-    m: int, n_terms: int = GLASER_TERMS
+    m: int, n_terms: int = GLASER_MAX_TERMS
 ) -> tuple[float, float, np.ndarray]:
     """Return ``(nu_m, A_m, v)`` for the Glaser-type series."""
     if not 2 <= m <= MAX_M:
@@ -106,8 +107,10 @@ def glaser_coefficients(
     return nu, leading, coefficients
 
 
-def ell_tilde_glaser(m: int, t: float, n_terms: int = GLASER_TERMS) -> float:
-    """Return ``exp(t) ell_m(t)`` from the Glaser-type series."""
+def ell_tilde_glaser(
+    m: int, t: float, n_terms: int = GLASER_MAX_TERMS
+) -> float:
+    """Return ``exp(t) ell_m(t)`` from a fixed Glaser-series truncation."""
     if t < 0.0:
         return 0.0
     if t == 0.0:
@@ -120,6 +123,49 @@ def ell_tilde_glaser(m: int, t: float, n_terms: int = GLASER_TERMS) -> float:
     nu, leading, coefficients = glaser_coefficients(m, n_terms)
     polynomial = float(np.polynomial.polynomial.polyval(t, coefficients))
     return leading * t ** (nu - 1.0) * polynomial
+
+
+def _ell_tilde_glaser_adaptive(
+    m: int,
+    t: float,
+    relative_tolerance: float = GLASER_RELATIVE_TOLERANCE,
+    max_terms: int = GLASER_MAX_TERMS,
+    negligible_terms: int = GLASER_NEGLIGIBLE_TERMS,
+) -> tuple[bool, float, int]:
+    """Evaluate the Glaser series until its terms are negligible.
+
+    The series is used only inside its proven convergence region ``0<t<2*pi``.
+    Convergence is declared after ``negligible_terms`` consecutive terms are
+    smaller than ``relative_tolerance`` times the accumulated sum. ``max_terms``
+    is a safety cap rather than a prescribed truncation order.
+    """
+    if t < 0.0:
+        return True, 0.0, 0
+    if t == 0.0:
+        return True, ell_tilde_glaser(m, t, 0), 0
+    if t >= 2.0 * math.pi:
+        return False, math.nan, 0
+
+    nu, leading, coefficients = glaser_coefficients(m, max_terms)
+    total = float(coefficients[0])
+    power = 1.0
+    negligible = 0
+
+    for index in range(1, max_terms + 1):
+        power *= t
+        term = float(coefficients[index]) * power
+        total += term
+        scale = max(abs(total), np.finfo(float).tiny)
+        if abs(term) <= relative_tolerance * scale:
+            negligible += 1
+            if negligible >= negligible_terms:
+                value = leading * t ** (nu - 1.0) * total
+                return math.isfinite(value) and value > 0.0, value, index
+        else:
+            negligible = 0
+
+    value = leading * t ** (nu - 1.0) * total
+    return False, value, max_terms
 
 
 @lru_cache(maxsize=None)
@@ -264,31 +310,16 @@ def ell_tilde_residue(
     return total
 
 
-def _glaser_is_converged(
-    m: int, t: float, tolerance: float = 5e-11
-) -> tuple[bool, float]:
-    value_180 = ell_tilde_glaser(m, t, 180)
-    if not (math.isfinite(value_180) and value_180 > 0.0):
-        return False, value_180
-    value_160 = ell_tilde_glaser(m, t, 160)
-    relative_error = abs(value_180 - value_160) / max(
-        abs(value_180), np.finfo(float).tiny
-    )
-    return relative_error <= tolerance, value_180
-
-
 def ell_tilde(m: int, t: float) -> float:
     """Return ``exp(t) ell_m(t)`` using the production float64 backend."""
     if t < 0.0:
         return 0.0
     if m > 51:
         return _high_m_ell_tilde(m, t)
-    if t <= 4.5:
-        return ell_tilde_glaser(m, t, 180)
-    if t < 10.0:
-        converged, value = _glaser_is_converged(m, t)
-        if converged:
-            return value
+
+    converged, value, _ = _ell_tilde_glaser_adaptive(m, t)
+    if converged:
+        return value
     return ell_tilde_residue(m, t)
 
 
