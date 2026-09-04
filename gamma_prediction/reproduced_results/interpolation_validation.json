@@ -1,6 +1,6 @@
 {
   "seed": 20260818,
-  "checks": 320,
+  "checks": 400,
   "n": [
     3,
     5,
@@ -20,21 +20,42 @@
       "checks": 160,
       "p": [
         0.001,
-        0.2
+        0.0025,
+        0.005,
+        0.01,
+        0.025,
+        0.05,
+        0.1
       ],
-      "median_relative_error": 1.0401552816243566e-06,
-      "p95_relative_error": 4.019176237137513e-05,
-      "max_relative_error": 0.00010346066015431277
+      "median_relative_error": 3.0379517836429228e-09,
+      "p95_relative_error": 7.955995365186256e-08,
+      "max_relative_error": 2.183095844806981e-07
+    },
+    "central": {
+      "checks": 80,
+      "p": [
+        0.25,
+        0.5,
+        0.75
+      ],
+      "median_relative_error": 4.975792279469054e-10,
+      "p95_relative_error": 7.284282064870271e-09,
+      "max_relative_error": 2.986099678461797e-08
     },
     "upper": {
       "checks": 160,
       "p": [
-        0.8,
+        0.9,
+        0.95,
+        0.975,
+        0.99,
+        0.995,
+        0.9975,
         0.999
       ],
-      "median_relative_error": 8.132442839168073e-08,
-      "p95_relative_error": 2.1905892085840805e-06,
-      "max_relative_error": 3.9086467334274494e-05
+      "median_relative_error": 2.650109021469551e-10,
+      "p95_relative_error": 9.152090278367388e-09,
+      "max_relative_error": 1.071221515580036e-07
     }
   }
 }

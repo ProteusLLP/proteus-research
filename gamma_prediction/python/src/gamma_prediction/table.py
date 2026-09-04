@@ -54,54 +54,16 @@ REFINED_D_ADDITIONS = np.array(
         47.5,
     ]
 )
-REFINED_P_ADDITIONS = np.array(
-    [
-        0.02,
-        0.03,
-        0.04,
-        0.075,
-        0.15,
-        0.2,
-        0.3,
-        0.4,
-        0.6,
-        0.7,
-        0.8,
-        0.85,
-        0.925,
-        0.96,
-        0.98,
-        0.0011,
-        0.00125,
-        0.0015,
-        0.002,
-        0.003,
-        0.004,
-        0.006,
-        0.008,
-        0.125,
-        0.175,
-        0.225,
-        0.775,
-        0.825,
-        0.875,
-        0.992,
-        0.994,
-        0.996,
-        0.997,
-        0.998,
-        0.9985,
-        0.99875,
-        0.9989,
-    ]
-)
+LOWER_TAIL_MAX_P = 0.25
+LOWER_TAIL_BLEND_MIN_P = 0.225
 
 
 @dataclass
 class CriticalValueTable:
     """Interpolated table of ``log M(n, p, d)`` values.
 
-    A tensor-product spline is evaluated in ``log(d)`` and logit probability.
+    A quintic tensor-product spline is evaluated in ``log(d)`` and logit
+    probability.
     Values outside the stored grid are rejected by default; callers can request
     the exact scalar fallback explicitly.
     """
@@ -138,12 +100,17 @@ class CriticalValueTable:
                 self._log_d_grid,
                 self._p_axis,
                 values,
-                kx=min(4, len(self.d_grid) - 1),
+                kx=min(5, len(self.d_grid) - 1),
                 ky=min(5, len(self.p_grid) - 1),
                 s=0.0,
             )
             for values in self.log_multiplier
         ]
+        self._lower_interpolators = self._build_lower_interpolators(
+            self.d_grid,
+            self.p_grid,
+            self.log_multiplier,
+        )
         refined = (
             self.refined_n_grid,
             self.refined_d_grid,
@@ -187,14 +154,46 @@ class CriticalValueTable:
                     self._refined_log_d_grid,
                     self._refined_p_axis,
                     values,
-                    kx=min(4, len(self.refined_d_grid) - 1),
+                    kx=min(5, len(self.refined_d_grid) - 1),
                     ky=min(5, len(self.refined_p_grid) - 1),
                     s=0.0,
                 )
                 for values in self.refined_log_multiplier
             ]
+            self._refined_lower_interpolators = self._build_lower_interpolators(
+                self.refined_d_grid,
+                self.refined_p_grid,
+                self.refined_log_multiplier,
+            )
         else:
             self._refined_interpolators = []
+            self._refined_lower_interpolators = []
+
+    @staticmethod
+    def _build_lower_interpolators(
+        d_grid: np.ndarray,
+        p_grid: np.ndarray,
+        values: np.ndarray,
+    ) -> list[RectBivariateSpline | None]:
+        """Build the transformed lower-tail surfaces suggested by the tail law."""
+        mask = p_grid <= LOWER_TAIL_MAX_P
+        if np.count_nonzero(mask) < 2:
+            return [None] * len(values)
+        lower_values = values[:, :, mask]
+        if np.any(lower_values >= 0.0):
+            raise ValueError("lower-tail log multipliers must be negative")
+        tail_axis = np.log(-np.log(p_grid[mask]))[::-1]
+        return [
+            RectBivariateSpline(
+                np.log(d_grid),
+                tail_axis,
+                np.log(-surface[:, ::-1]),
+                kx=min(5, len(d_grid) - 1),
+                ky=min(5, np.count_nonzero(mask) - 1),
+                s=0.0,
+            )
+            for surface in lower_values
+        ]
 
     def save(self, path: str | Path) -> None:
         values = dict(
@@ -226,7 +225,7 @@ class CriticalValueTable:
                 context.Emin = -999999
                 context.Emax = 999999
                 for n in self.n_grid:
-                    _, d_grid, p_grid, log_values, _, _ = self._surface(int(n))
+                    _, _, d_grid, p_grid, log_values, _, _ = self._surface(int(n))
                     for d_index, d in enumerate(d_grid):
                         for p_index, p in enumerate(p_grid):
                             log_value = float(log_values[d_index, p_index])
@@ -275,6 +274,7 @@ class CriticalValueTable:
             ):
                 return (
                     self._refined_interpolators[refined_index],
+                    self._refined_lower_interpolators[refined_index],
                     self.refined_d_grid,
                     self.refined_p_grid,
                     self.refined_log_multiplier[refined_index],
@@ -283,6 +283,7 @@ class CriticalValueTable:
                 )
         return (
             self._interpolators[n_index],
+            self._lower_interpolators[n_index],
             self.d_grid,
             self.p_grid,
             self.log_multiplier[n_index],
@@ -293,13 +294,36 @@ class CriticalValueTable:
     def _interpolate(self, n: int, d: float, p: float) -> float:
         if d <= 0:
             raise ValueError("d must be positive")
-        interpolator, d_grid, _, _, _, p_axis = self._surface(n)
+        (
+            interpolator,
+            lower_interpolator,
+            d_grid,
+            _,
+            _,
+            _,
+            p_axis,
+        ) = self._surface(n)
         if d < d_grid[0] or d > d_grid[-1]:
             raise ValueError("d is outside the table grid")
         target_p = math.log(p) - math.log1p(-p)
         if target_p < p_axis[0] or target_p > p_axis[-1]:
             raise ValueError("p is outside the table grid")
-        return float(interpolator(math.log(float(d)), target_p)[0, 0])
+        log_d = math.log(float(d))
+        central_value = float(interpolator(log_d, target_p)[0, 0])
+        if p > LOWER_TAIL_MAX_P or lower_interpolator is None:
+            return central_value
+
+        lower_value = -math.exp(
+            float(lower_interpolator(log_d, math.log(-math.log(p)))[0, 0])
+        )
+        if p < LOWER_TAIL_BLEND_MIN_P:
+            return lower_value
+
+        position = (p - LOWER_TAIL_BLEND_MIN_P) / (
+            LOWER_TAIL_MAX_P - LOWER_TAIL_BLEND_MIN_P
+        )
+        weight = position * position * (3.0 - 2.0 * position)
+        return (1.0 - weight) * lower_value + weight * central_value
 
     def log_multiplier_at(
         self,
@@ -313,7 +337,7 @@ class CriticalValueTable:
         if not (0.0 < p < 1.0):
             raise ValueError("p must lie strictly between 0 and 1")
         try:
-            _, d_grid, p_grid, log_values, _, _ = self._surface(n)
+            _, _, d_grid, p_grid, log_values, _, _ = self._surface(n)
             d_index = int(np.searchsorted(d_grid, d))
             p_index = int(np.searchsorted(p_grid, p))
             if (
@@ -345,7 +369,15 @@ class CriticalValueTable:
         if np.any(dispersions <= 0.0):
             raise ValueError("d must be positive")
 
-        interpolator, d_grid, _, _, _, p_axis = self._surface(n)
+        (
+            interpolator,
+            lower_interpolator,
+            d_grid,
+            _,
+            _,
+            _,
+            p_axis,
+        ) = self._surface(n)
         in_range = (dispersions >= d_grid[0]) & (dispersions <= d_grid[-1])
         if not exact_fallback and not np.all(in_range):
             raise ValueError("d is outside the table grid")
@@ -357,10 +389,32 @@ class CriticalValueTable:
                 raise ValueError("p is outside the table grid")
             in_range[:] = False
         if np.any(in_range):
-            result[in_range] = interpolator.ev(
-                np.log(dispersions[in_range]),
+            log_d = np.log(dispersions[in_range])
+            central_values = interpolator.ev(
+                log_d,
                 np.full(np.count_nonzero(in_range), target_p),
             )
+            if p > LOWER_TAIL_MAX_P or lower_interpolator is None:
+                result[in_range] = central_values
+            else:
+                lower_values = -np.exp(
+                    lower_interpolator.ev(
+                        log_d,
+                        np.full(
+                            np.count_nonzero(in_range), math.log(-math.log(p))
+                        ),
+                    )
+                )
+                if p < LOWER_TAIL_BLEND_MIN_P:
+                    result[in_range] = lower_values
+                else:
+                    position = (p - LOWER_TAIL_BLEND_MIN_P) / (
+                        LOWER_TAIL_MAX_P - LOWER_TAIL_BLEND_MIN_P
+                    )
+                    weight = position * position * (3.0 - 2.0 * position)
+                    result[in_range] = (
+                        (1.0 - weight) * lower_values + weight * central_values
+                    )
         for index in zip(*np.where(~in_range)):
             result[index] = prediction_log_multiplier(
                 int(n), float(dispersions[index]), float(p)
@@ -423,20 +477,38 @@ def _build_refined_n(arguments):
     return values
 
 
+def _insert_transformed_midpoints(
+    grid: np.ndarray,
+    transform,
+    inverse,
+) -> np.ndarray:
+    """Bisect every grid cell in the coordinate used for interpolation."""
+    transformed = transform(np.asarray(grid, dtype=float))
+    midpoints = inverse(0.5 * (transformed[:-1] + transformed[1:]))
+    return np.sort(np.r_[grid, midpoints])
+
+
 def refine_critical_value_table(
     table: CriticalValueTable,
     *,
     d_additions: Iterable[float] = REFINED_D_ADDITIONS,
-    p_additions: Iterable[float] = REFINED_P_ADDITIONS,
+    p_additions: Iterable[float] = (),
     workers: int = 1,
     progress: bool = True,
 ) -> CriticalValueTable:
-    """Add a production-exact supplemental grid for every stored ``n <= 100``."""
+    """Add the production lookup grid for every stored ``n <= 100``.
+
+    Dispersion cells are bisected in ``log(d)``.  By default, the probability
+    grid contains only the table's 17 critical probability levels, because the
+    production lookup is intended for those levels rather than interpolation
+    between them.  Additional probability levels can be requested explicitly.
+    """
     if workers < 1:
         raise ValueError("workers must be positive")
     n_grid = table.n_grid[table.n_grid <= 100]
     d_grid = np.unique(np.r_[table.d_grid, np.asarray(list(d_additions), dtype=float)])
     p_grid = np.unique(np.r_[table.p_grid, np.asarray(list(p_additions), dtype=float)])
+    d_grid = _insert_transformed_midpoints(d_grid, np.log, np.exp)
     reusable: dict[int, np.ndarray] = {}
     if (
         table.refined_n_grid is not None
@@ -476,5 +548,5 @@ def refine_critical_value_table(
 
 
 def load_default_table() -> CriticalValueTable:
-    """Load the packaged table through n=100, d=1e-6..50, p=.001..999."""
+    """Load the packaged lookup table through n=100, d=1e-6..50, p=.001..999."""
     return CriticalValueTable.load(DEFAULT_TABLE_PATH)
