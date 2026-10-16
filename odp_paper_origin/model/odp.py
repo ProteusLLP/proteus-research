@@ -119,7 +119,7 @@ def load_saluz_data() -> TriangleData:
     cum = pd.read_csv(DATA_DIR / "saluz_triangle.csv", index_col=0)
     inc = cum.diff(axis=1)
     inc.iloc[:, 0] = cum.iloc[:, 0]
-    premiums = pd.read_csv(DATA_DIR / "premium.csv", index_col=0).squeeze()
+    premiums = pd.read_csv(DATA_DIR / "saluz_premium.csv", index_col=0).squeeze()
     return TriangleData(
         triangle=inc.to_numpy(dtype=float),
         premiums=premiums.to_numpy(dtype=float),
@@ -184,10 +184,10 @@ class OriginPriorODP:
         mu = ProteusVariable("op", {})
         mu["1"] = StochasticScalar([1.0])
 
-        cum_mu = mu["1"]
+        cumulative_mu = mu["1"]
         for i in range(2, self.n + 1):
-            cum_mu = cum_mu / self.xi[str(i)]
-            mu[str(i)] = cum_mu - (cum_mu * self.xi[str(i)])
+            cumulative_mu = cumulative_mu / self.xi[str(i)]
+            mu[str(i)] = cumulative_mu - (cumulative_mu * self.xi[str(i)])
         self.mu = mu
         return mu
 
