@@ -12,6 +12,7 @@
 \usepackage{setspace}
 \usepackage{enumitem}
 \usepackage{microtype}
+\usepackage{url}
 \onehalfspacing
 
 \newtheorem{theorem}{Theorem}
@@ -34,11 +35,10 @@
 \newcommand{\GammaD}{\mathrm{Gamma}}
 \newcommand{\Mult}{\mathrm{Mult}}
 
-\title{Exact Bayesian Predictive Distributions for the Over-dispersed Poisson Reserving Model with Origin-Period Priors\\[4pt]
-\large An exact analytical bridge between Chain Ladder and Cape Cod}
-\author{James P. Norman\\Proteus Consulting LLP}
+\title{Exact Bayesian Predictive Distributions for the Over-dispersed Poisson Reserving Model with Origin-Period Priors\\[4pt]}
+\author{James P. Norman \\Proteus Consulting LLP, Cambridge, UK.,\footnote{Email: james.norman@proteusllp.com, homepage: \url{www.proteusllp.com}}}
 \date{Draft prepared April 2026}
-
+\date{Revised \today}
 \begin{document}
 \maketitle
 
@@ -49,11 +49,12 @@ such as exposures, underwriting changes and external benchmark loss ratios.
 Bayesian ODP-type models have previously been used to incorporate expert judgement and external information, and study prediction uncertainty, but largely through numerical procedures such as Markov Chain Monte Carlo (MCMC)
 or approximations. In this paper we show that an exact Bayesian posterior predictive distribution can be written in terms of simple beta and gamma distributions. This yields explicit formulas for reserve means, predictive variances and covariances, 
 together with a simple recursive algorithm for simulating from the full predictive distribution using only standard distributions, which can be used for calculating risk measures such as VaR and TVaR.
-The exact solution is fast, robust and straightforward to implement. 
 
 We next introduce a one-parameter family of prior distributions which shrink the origin-period parameters toward an exposure-based index. We show that
 in the strong-prior limit, the model recovers the Cape Cod model, while in the weak-prior limit it recovers the Chain Ladder model. Intermediate prior strength yields a continuum of credibility-weighted estimators between these two endpoints. 
-With a hierarchical prior on the origin period parameters, we show how the blending parameter may itself be estimated from the data. 
+With a hierarchical prior on the origin period parameters, we show how the blending parameter may itself be estimated from the data. A numerical
+example illustrates the model naturally weights reserve estimates towards the Cape Cod estimator for more recent
+origin periods, with increasing weight towards the Chain Ladder estimator for older origin periods.
 \end{abstract}
 
 
@@ -76,7 +77,7 @@ This is also the natural point of contact between pricing and reserving. Prior a
 Formulas for prediction uncertainty have been obtained for Cape Cod \citep{Saluz2015CapeCod} and related credibility-based reserving estimators \citep{Mack2008BF,SaluzGislerWuthrich2011}. 
 \citet{Taylor2019CapeCod} develops a stochastic Cape Cod model within the exponential-dispersion family and also introduces a Bayesian Cape Cod formulation with a MAP estimator. 
 \citet{GigantePicechSigalotti2013} study hierarchical generalised linear models with origin-year random effects and explicitly allow external information to enter through the random-effect structure. 
-Clark,s Bayesian development-pattern work focuses on conjugate priors for the development pattern itself, and explicitly restricts attention to the pattern-selection problem rather than reserve ranges or exposure-based loss-ratio methods \citep{Clark2016BayesianDevelopment}.
+Clark's Bayesian development-pattern work focuses on conjugate priors for the development pattern itself, and explicitly restricts attention to the pattern-selection problem rather than reserve ranges or exposure-based loss-ratio methods \citep{Clark2016BayesianDevelopment}.
 
 Despite this rich literature, to our knowledge, no previous paper has derived an exact closed-form Bayesian posterior predictive distribution for the 
 ODP model with informative priors placed on the origin-period parameters, together with explicit reserve-uncertainty formulas in that setting. 
@@ -91,17 +92,17 @@ factorises into independent beta distributions. This produces an exact origin-si
 
 The key advantages are as follows. First, the model admits a full posterior predictive distribution in recursive form using only elementary building blocks of independent beta and gamma distributions. 
 Second, reserve means, predictive variances and covariances are available in closed form. Third, under a hierarchical shrinkage prior, the model yields
-an exact one-parameter credibility bridge between the data-driven ODP or Chain Ladder and Cape Cod. The strong-prior limit yields Cape Cod, the weak-prior limit yields the data-driven endpoint, and intermediate prior strength yields a 
+an exact one-parameter credibility bridge between the Chain Ladder and Cape Cod. The strong-prior limit yields 
+Cape Cod, the weak-prior limit yields the data-driven endpoint, and intermediate prior strength yields a 
 continuum of credibility-weighted methods. 
-Fourth, an exact credibility blend between the internally estimated Cape Cod loss ratio and an external benchmark loss ratio is obtained when incorporating prior information on the overall development scale.
 
-An algorithm is presented for generating full simulations of the future claims distribution for internal-model, Solvency II and related global capital-standard applications. The model projects not only the total 
-reserve but also the full triangle of future payments, allowing discounted cash flow calculations. A one-year claims development result can also be obtained.
-
+An algorithm is presented for generating full simulations of the future claims distribution for internal-model, Solvency II and other capital frameworks. 
+The model projects not only the total 
+reserve but also the full triangle of future payments, allowing discounted cash flow calculations. 
 
 The paper is organised as follows. \Cref{sec:model} introduces the model and derives the origin-side conjugate structure. \Cref{sec:predictive} derives the exact posterior predictive distribution, reserve means and reserve-uncertainty formulas. 
-\Cref{sec:hierarchical} introduces the hierarchical shrinkage prior, develops the exact Chain Ladder--Cape Cod bridge, and then explains how an additional prior on the overall development scale is needed if one wishes to encode external 
-benchmark loss-ratio information. \Cref{sec:example} records the structure of an empirical illustration. \Cref{sec:discussion} concludes.
+\Cref{sec:hierarchical} introduces the hierarchical shrinkage prior, develops the exact Chain Ladder--Cape Cod 
+bridge. \Cref{sec:example} records the structure of an empirical illustration. \Cref{sec:discussion} concludes.
 
 \section{The ODP model under origin-side normalisation}\label{sec:model}
 
@@ -116,7 +117,7 @@ X_{ij}\mid \mu,\beta \sim \phi\,\mathrm{Poi}\!\left(\frac{\mu_i\beta_j}{\phi}\ri
 with conditional independence over observed cells. Here $\phi>0$ is treated as known, as in \citet{EnglandVerrall2006} and \citet{Norman2025ODP}. We keep $\phi$ constant purely for pedagogical clarity of exposition. As discussed in \citet{EnglandVerrall2006} and 
 \citet{Saluz2015CapeCod}, the assumption of a constant scale parameter may not be appropriate in all cases and should be checked. In many cases a scale parameter which varies across development periods is more appropriate. Our results can be extended to that setting, 
 but the constant scale case is sufficient to illustrate the key ideas. A standard limitation of the ODP framework should also be noted: since the cell means must be non-negative, the model is not naturally suited to triangles with material negative 
-incremental entries, for example from heavy salvage and subrogation. 
+incremental entries, for example from salvage and subrogation, or when using incurred/reported claims triangles.. 
 
 Since the ODP means depend only on the products $\mu_i\beta_j$, any positive rescaling $(\mu,\beta)\mapsto(c\mu,\beta/c)$ leaves the model unchanged. 
 In \citet{Norman2025ODP}, this invariance was broken by imposing $\sum_j{\beta_j}=1$. 
@@ -177,15 +178,15 @@ independently over development periods.
 
 \begin{proof}
 The likelihood kernel is
-\[
+\begin{equation}
 \prod_{i+j\le n+1}
 \left(\frac{\mu_i\beta_j}{\phi}\right)^{x_{ij}}
 \exp\!\left(-\frac{\mu_i\beta_j}{\phi}\right),
-\]
+\end{equation}
 which factorises by collecting the powers of $\mu_i$ and $\beta_j$. Multiplying by \eqref{eq:beta_log_prior} therefore leaves the exponent of $\beta_j$ equal to $c_j-1$, giving the stated gamma kernel.
 \end{proof}
 
-Integrating out the development parameters first therefore yields the marginal posterior kernel on the origin side
+Integrating out the development parameters first therefore yields the marginal posterior kernel on the origin-period parameters
 \begin{equation}
 p(\mu\mid X)
 \propto
@@ -209,7 +210,9 @@ A convenient and tractable prior family on the origin index is
 \qquad \mu_i>0,
 \label{eq:igd_mu_prior}
 \end{equation}
-for parameters $a_i>0$ and $b_i>0$, $i=2,\dots,n$, where $B(x,y)=\Gamma(x)\Gamma(y)/\Gamma(x+y)$ is the Beta function. We refer to \eqref{eq:igd_mu_prior} as a generalised inverse-Dirichlet prior \citep{Lingappaiah1976}. The generalised inverse-Dirichlet family is a natural extension of the generalised Dirichlet distribution to the case where the components are not constrained to sum to one \citep{Lingappaiah1976}. The means and covariances of the $\mu_i$ under \eqref{eq:igd_mu_prior} are for $i\ge 2$,
+for parameters $a_i>0$ and $b_i>0$, $i=2,\dots,n$, where $B(x,y)=\Gamma(x)\Gamma(y)/\Gamma(x+y)$ is the Beta function. We refer to \eqref{eq:igd_mu_prior} as a generalised inverse-Dirichlet prior \citep{Lingappaiah1976}. 
+
+The means, second moments and cross-moments of the $\mu_i$ under \eqref{eq:igd_mu_prior} are for $i\ge 2$,
 
 \begin{equation}
 \mathbb{E}[\mu_i]
@@ -220,8 +223,23 @@ for parameters $a_i>0$ and $b_i>0$, $i=2,\dots,n$, where $B(x,y)=\Gamma(x)\Gamma
 \qquad a_k>1 \ \text{for } k=2,\dots,i,
 \label{eq:mu_mean}
 \end{equation}
+
+\begin{equation}
+\mathbb{E}[\mu_i^2]
+=
+\frac{b_i(a_i+b_i-1)}{(a_i-1)(a_i-2)}
+\left(
+\prod_{k=2}^{i-1}
+\frac{(a_k+b_k-1)(a_k+b_k-2)}{(a_k-1)(a_k-2)}
+\right)
+\left(
+\prod_{k=i+1}^{i-1}
+\frac{a_k+b_k-1}{a_k-1}
+\right)
+\frac{b_i}{a_i-1},
+\end{equation}
 and for $2\le i<j\le n$,
-\[
+\begin{equation}
 \mathbb{E}[\mu_i\mu_j]
 =
 \frac{b_i(a_i+b_i-1)}{(a_i-1)(a_i-2)}
@@ -234,9 +252,9 @@ and for $2\le i<j\le n$,
 \frac{a_k+b_k-1}{a_k-1}
 \right)
 \frac{b_j}{a_j-1},
-\]
+\end{equation}
 provided $a_k>2$ for $k=2,\dots,i$ and $a_k>1$ for $k=i+1,\dots,j$.
-Therefore
+The covariance between $\mu_i$ and $\mu_j$ is then easily obtained:
 \begin{equation}
 \mathrm{Cov}(\mu_i,\mu_j)
 =
@@ -388,7 +406,7 @@ Hence future payments may be simulated exactly as follows:
 \begin{enumerate}[leftmargin=2em]
 \item For $i=2,\dots,n$, sample $\xi_i$ independently from \eqref{eq:xi_posterior_general}.
 \item Recover $\mu_i$ from $\xi$ using \eqref{eq:M_mu_from_xi}.
-\item For $j=1,\dots,n-1$, sample $\beta_j$ independently from \eqref{eq:beta_post_log_predictive}.
+\item For $j=2,\dots,n$, sample $\beta_j$ independently from \eqref{eq:beta_post_log_predictive}.
 \item For each future cell $(i,j)$ with $i+j>n+1$, sample
 \[
 X_{ij}^{\mathrm{fut}}\mid X,\mu,\beta \sim \phi\,\mathrm{Poi}\!\left(\frac{\mu_i\beta_j}{\phi}\right).
@@ -397,7 +415,6 @@ X_{ij}^{\mathrm{fut}}\mid X,\mu,\beta \sim \phi\,\mathrm{Poi}\!\left(\frac{\mu_i
 This representation uses only independent beta draws, independent gamma draws, and conditionally independent scaled Poisson draws. For the final forecasting step, 
 one may prefer to replace the scaled Poisson draw with  $X_{ij}^{\mathrm{fut}}\mid X,\mu,\beta \sim \phi\,\GammaD\!\left(\frac{\mu_i\beta_j}{\phi},1\right).$ which has the same mean and variance
 but avoids the discreteness inherent in the Poisson distribution.
-
 
 \subsection{Reserve mean under the general prior}
 
@@ -529,11 +546,9 @@ The same-column covariance given $\xi$ is
 while different development periods are conditionally independent. Applying the law of total variance and the law of total covariance then gives the result.
 \end{proof}
 
-
-\subsection{Reserve variances and covariances under the general prior}
-\label{sec:reserve_variances}
-
-To calculate reserve variances efficiently without relying on individual pairwise cell covariances, it is helpful to exploit the independence of the posterior beta coordinates and the telescoping structure of \eqref{eq:W_ij}. For $k=2,\dots,n$, define the posterior inverse moments
+To simplify the calculation of reserve variances efficiently without relying on individual pairwise cell 
+covariances, it is helpful to exploit the independence of the posterior beta coordinates and 
+the telescoping structure of \eqref{eq:W_ij}. For $k=2,\dots,n$, define the posterior inverse moments
 \begin{equation}
 v_k:=\E[\xi_k^{-1}\mid X]
 =\frac{a_k+b_k+s_k+d_k-1}{a_k+s_k-1}
@@ -615,27 +630,20 @@ which yields \eqref{eq:sigma_jh_i_general} after subtracting $m_{ij}m_{ih}$.
 For the total reserve variance, the same telescoping structure leads to an even simpler column-based representation.
 
 \begin{proposition}[Total reserve mean and variance]\label{prop:total_reserve_variance_general_compact}
-For $j=2,\dots,n$, define
-\begin{equation}
-\Pi_j:=\prod_{k=n-j+2}^{n} v_k,
-\qquad
-\Pi_j^{(2)}:=\prod_{k=n-j+2}^{n} v_k^{(2)}.
-\label{eq:Pi_j_general}
-\end{equation}
-Then the total reserve
+The total reserve
 \begin{equation}
 T:=\sum_{i+j>n+1} X_{ij}
 \end{equation}
 has posterior predictive mean
 \begin{equation}
-\E[T\mid X]=\sum_{j=2}^{n} C_j\bigl(\Pi_j-1\bigr)
+\E[T\mid X]=\sum_{j=2}^{n} C_j\bigl(\prod_{k=n-j+2}^{n} v_k-1\bigr)
 \label{eq:total_reserve_mean_compact_general}
 \end{equation}
 and posterior predictive variance
 \begin{equation}
 \Var(T\mid X)
 =
-\sum_{j=2}^{n}\phi C_j\bigl(\Pi_j^{(2)}-\Pi_j\bigr)
+\sum_{j=2}^{n}\phi C_j\bigl(\prod_{k=n-j+2}^{n} v_k^{(2)}-\prod_{k=n-j+2}^{n} v_k\bigr)
 +
 \sum_{j=2}^{n}\sum_{h=2}^{n} C_jC_h\Omega_{jh},
 \label{eq:total_reserve_variance_compact_general}
@@ -644,7 +652,7 @@ where, for $j\le h$,
 \begin{equation}
 \Omega_{jh}
 :=
-\Pi_h\left(\frac{\Pi_j^{(2)}}{\Pi_j}-\Pi_j\right).
+\prod_{k=n-h+2}^{n} v_k\left(\frac{\prod_{k=n-j+2}^{n} v_k^{(2)}}{\prod_{k=n-j+2}^{n} v_k}-\prod_{k=n-j+2}^{n} v_k\right).
 \label{eq:Omega_jh_general}
 \end{equation}
 By symmetry, $\Omega_{jh}=\Omega_{hj}$ for $j>h$.
@@ -655,7 +663,7 @@ Let
 \begin{equation}
 S_j:=\sum_{i=n-j+2}^{n} W_{ij}
 \end{equation}
-denote the future proportion of development period $j$. Substituting \eqref{eq:mu_from_xi_again} into \eqref{eq:W_ij}, the sum telescopes to
+denote the future proportion of development period $j$. Substituting \eqref{eq:M_mu_from_xi} into \eqref{eq:W_ij}, the sum telescopes to
 \begin{equation}
 S_j=\left(\prod_{k=n-j+2}^{n}\xi_k^{-1}\right)-1.
 \label{eq:Sj_telescoped_general}
@@ -685,13 +693,14 @@ Subtracting $\E[P_j\mid X]\E[P_h\mid X]=\Pi_j\Pi_h$ gives \eqref{eq:Omega_jh_gen
 
 \section{An exposure-centred one-parameter family and its classical limits}\label{sec:hierarchical}
 
-The previous sections derived the exact predictive distribution under a generalised inverse Dirichlet origin-side prior. We now specialise that prior to a
-prior where the expected claims by origin period 
+The previous sections derived the exact predictive distribution under a generalised inverse Dirichlet origin-side prior. 
+We now consider the special case of a prior where the expected claims by origin period 
 are proportional to the exposure. A single concentration parameter then controls how tightly the prior is concentrated 
 around the exposure.
 
-We will show that in the weak-prior limit - that is, when the prior variance goes to infinity, the model recovers the Chain Ladder. The strong-prior limit in which the prior expected claims are exactly proportional to the 
-exposure recovers Cape Cod. Thus the family provides a continuous interpolation between these two classical methods, with the concentration parameter controlling the strength of the credibility effect. 
+We will show that in the weak-prior limit - that is, when the prior variance goes to infinity, the model recovers 
+the Chain Ladder mean. The strong-prior limit in which the prior expected claims are exactly proportional to the 
+exposure recovers the Cape Cod mean. Thus the family provides a continuous interpolation between these two classical methods, with the concentration parameter controlling the strength of the credibility effect. 
 The family is also convenient for practical use, since it has only one additional prior parameter to calibrate. The concentration parameter can be estimated from the data through maximum marginal likelihood. 
 Introducing a hyperprior on the concentration parameter then gives a fully Bayesian model for the concentration parameter.
 
@@ -712,6 +721,15 @@ a_i=1+\tau\sum_{r=1}^{i-1}e_r,
 b_i=\tau e_i.
 \label{eq:a_b_tau}
 \end{equation}
+Equivalently, in the transformed coordinates,
+\begin{equation}
+\xi_i\mid\tau \stackrel{\mathrm{ind}}{\sim}
+\BetaD\!\left(
+1+\tau\sum_{r=1}^{i-1}e_r,\,\tau e_i
+\right),
+\qquad i=2,\dots,n.
+\label{eq:xi_prior_tau}
+\end{equation}
 This family has the appealing property that the prior mean of $\mu_i$ is proportional to the exposure $E_i$. From (\ref{eq:mu_mean}), 
 \begin{equation}
 \E[\mu_i\mid\tau]=e_i=\frac{E_i}{E_1},
@@ -719,7 +737,7 @@ This family has the appealing property that the prior mean of $\mu_i$ is proport
 \label{eq:mu_mean_tau}
 \end{equation}
 The parameter $\tau$ controls how strongly the prior is concentrated around the exposure. Smaller $\tau$ corresponds to a 
-weaker prior, while larger $\tau$ corresponds to a stronger prior. We will see that the weak prior limit $\tau\downarrow0$ leads to the Chain Ladder endpoint; the strong prior limit $\tau\to\infty$ is the Cape Cod endpoint.
+weaker prior, while larger $\tau$ corresponds to a stronger prior. We will see that the weak prior limit $\tau\rightarrow 0$ leads to the Chain Ladder endpoint; the strong prior limit $\tau\to\infty$ is the Cape Cod endpoint.
 A construction that gives rise to this prior using independent gamma prior loss ratios is given in \Cref{app:gamma_loss_ratio_prior}.
 
 Under \eqref{eq:xi_posterior_general} and \eqref{eq:a_b_tau},
@@ -737,7 +755,14 @@ v_i(\tau):=d_i+\tau e_i.
 \label{eq:u_v_tau}
 \end{equation}
 
-The credibility effect is explicit. The posterior mean of each transformed coordinate is
+The credibility effect is clearly visible in the posterior mean. Defining
+\begin{equation}
+\xi_i^0:=
+\frac{\sum_{r=1}^{i-1}e_r}{\sum_{r=1}^{i}e_r},
+\qquad i=2,\dots,n.
+\label{eq:xi0_def}
+\end{equation}
+the posterior mean of each transformed coordinate is
 \begin{equation}
 \E[\xi_i\mid X,\tau]
 =
@@ -772,7 +797,7 @@ For fixed $\tau$, reserve means and predictive variances are obtained by substit
 
 \subsection{The Chain Ladder weak-prior limit}\label{subsec:weak_prior_limit}
 
-As $\tau\downarrow0$ in \eqref{eq:a_b_tau}, the exposure-centred family tends to an improper prior. In $\xi$ coordinates, the limit is
+As $\tau\rightarrow 0$ in \eqref{eq:a_b_tau}, the exposure-centred family tends to an improper prior. In $\xi$ coordinates, the limit is
 \begin{equation}
 \xi_i \sim \BetaD(1,0),
 \qquad i=2,\dots,n,
@@ -791,7 +816,7 @@ Consequently,
 \E\!\left[\xi_i^{-1}\,\middle|\,X\right]=\frac{s_i+d_i}{s_i}.
 \label{eq:inverse_moments_tau0}
 \end{equation}
-Substituting into \eqref{eq:first_moment_mij} gives
+Substituting into \eqref{eq:first_moment_mij_general} gives
 \begin{equation}
 \E[X_{ij}\mid X]
 =
@@ -895,16 +920,19 @@ Thus the completed incremental triangles coincide.
 \end{proof}
 
 \begin{corollary}
-The weak-prior limit \eqref{eq:xi_prior_cl} recovers the classical Chain Ladder completion exactly.
+The weak-prior limit \eqref{eq:xi_prior_cl} recovers the classical Chain Ladder mean exactly.
 \end{corollary}
 
 
 \subsection{Cape Cod as the strong-prior exposure-centred limit}\label{subsec:strong_prior_limit}
 
-At the other endpoint, as $\tau\to\infty$ in \eqref{eq:a_b_tau}, the origin-period prior concentrates on the exposure index. 
-This endpoint is the classical Cape Cod method. Cape Cod is often used in practice as a data-driven way of estimating the Bornhuetter--Ferguson prior loss ratio: it estimates a common loss-ratio level from the observed payments, exposures and development pattern, then applies that level to each origin period's exposure. In the present formulation this emerges as the strong-prior limit of the exposure-centred origin prior.
+At the other endpoint, as $\tau\to\infty$ in \eqref{eq:a_b_tau}, the origin-period prior concentrates on the exposure index, so that
+$$
+\mu_i \rightarrow e_i=\frac{E_i}{E_1},
+$$
 
-In this limit, \eqref{eq:beta_post_log} gives
+
+In this limit, \eqref{eq:beta_post_conditional} gives
 \begin{equation}
 \E[\beta_j\mid X]
 =
@@ -972,12 +1000,15 @@ Therefore
 E_i\widehat\kappa_{\mathrm{CC}}\bigl(1-\widehat q_{n-i+1}^{\mathrm{CC}}\bigr).
 \label{eq:reserve_cc}
 \end{equation}
+
 Thus the strong-prior exposure-centred limit of the exact Bayesian model recovers the classical Cape Cod common loss ratio, 
-additive loss-ratio profile and reserve formula exactly. The word `strong' here refers to the origin-period index: the relative ultimate claims by origin period are fixed in proportion to exposure, while the common loss-ratio level is still estimated from the triangle. This is precisely the data-driven BF-prior interpretation of Cape Cod.
+additive loss-ratio profile and reserve formula exactly. 
+The word `strong' here refers to the origin-period index: the relative ultimate claims by origin period 
+are fixed in proportion to exposure, while the common loss-ratio level is still driven from the triangle.
 
 
 
-\subsection{Adding a hyperprior on the shrinkage strength}\label{sec:hierarchical}
+\subsection{Adding a hyperprior on the shrinkage strength}\label{subsec:tau_hyperprior}
 
 The hierarchical model is introduced to express a familiar actuarial idea: origin-year expected loss ratios 
 are usually similar, but not identical. Pure Chain Ladder estimates each origin period from its own claims 
@@ -1003,7 +1034,6 @@ p(\tau\mid X)
 \label{eq:tau_posterior}
 \end{equation}
 
-The corresponding marginal likelihood is therefore proportional to the product term in \eqref{eq:tau_posterior}. 
 This gives a simple one-dimensional route to several implementations. In a fully Bayesian treatment one may integrate over $p(\tau\mid X)$ by 
 quadrature or simulation. In this case it is important to ensure that the prior $\pi(\tau)$ is proper, since the marginal likelihood is finite as $\tau\rightarrow\infty$. In an empirical Bayes treatment one may maximise the marginal likelihood to obtain a maximum marginal likelihood estimate $\tau^{\mathrm{MML}}$. Alternatively, with a proper hyperprior $\pi(\tau)$, one may maximise \eqref{eq:tau_posterior} to obtain the MAP estimate $\tau^{\mathrm{MAP}}$. 
 
@@ -1019,112 +1049,41 @@ The fully Bayesian prediction error is then
 -\widehat{R}^2,
 \label{eq:full_bayes_var_total}
 \end{equation}
-
-\section{External benchmark loss ratios via a common-rate gamma prior}\label{subsec:external_lr}
-
-The logarithmic prior \eqref{eq:beta_log_prior} is the choice that recovers the internal Cape Cod loss ratio in the strong-prior exposure-centred limit. If one wishes instead to blend that internal loss ratio with an external benchmark, a natural extension is to replace \eqref{eq:beta_log_prior} by independent gamma priors with common rate
+where $V(\tau)$ denotes the fixed-$\tau$ posterior predictive variance of $T$ and
 \begin{equation}
-\beta_j \stackrel{\mathrm{ind}}{\sim} \GammaD(\alpha_j,b),
-\qquad \alpha_j>0,\ b>0,
-\qquad j=1,\dots,n.
-\label{eq:beta_common_rate_prior}
+\widehat R:=\int_0^{\infty}\widehat R(\tau)p(\tau\mid X)\,\dd\tau.
+\label{eq:full_bayes_mean_total}
 \end{equation}
-Write
-\begin{equation}
-A:=\sum_{j=1}^{n}\alpha_j,
-\qquad
-B:=\sum_{j=1}^{n}\beta_j,
-\qquad
-p_j:=\frac{\beta_j}{B},
-\qquad j=1,\dots,n,
-\label{eq:Bp_decomp_external}
-\end{equation}
-and define the common loss ratio
-\begin{equation}
-\kappa:=\frac{B}{E_1}.
-\label{eq:kappa_def_external}
-\end{equation}
-Under \eqref{eq:beta_common_rate_prior},
-\begin{equation}
-B\sim \GammaD(A,b),
-\qquad
-p\sim \Dir(\alpha_1,\dots,\alpha_n),
-\label{eq:Bp_prior_external}
-\end{equation}
-with $B$ independent of $p$.
-
-Now impose the strong exposure-centred origin-period prior $\mu_i=E_i/E_1$. Conditional on $p$, define the cumulative paid proportions
-\begin{equation}
-q_m:=\sum_{j=1}^{m}p_j,
-\qquad m=1,\dots,n.
-\label{eq:q_def_external}
-\end{equation}
-Then the likelihood for $B$ is gamma, and
-\begin{equation}
-B\mid p,X
-\sim
-\GammaD\!\left(A+C,\,b+\frac{1}{\phi E_1}\sum_{i=1}^{n}E_i q_{n-i+1}\right),
-\label{eq:B_post_external}
-\end{equation}
-where $C:=\sum_{j=1}^{n}c_j$. Hence
-\begin{equation}
-\E[\kappa\mid p,X]
-=
-\frac{A+C}{bE_1+\phi^{-1}\sum_{i=1}^{n}E_i q_{n-i+1}}.
-\label{eq:kappa_external_post_mean}
-\end{equation}
-If we define the external benchmark loss ratio and the internal Cape Cod estimator associated with $p$ by
-\begin{equation}
-\kappa^{\mathrm{ext}}:=\frac{A}{bE_1},
-\qquad
-\widehat\kappa^{\mathrm{int}}(p):=\frac{\phi C}{\sum_{i=1}^{n}E_i q_{n-i+1}},
-\label{eq:kappa_ext_int_defs}
-\end{equation}
-then \eqref{eq:kappa_external_post_mean} can be written as the exact credibility blend
-\begin{equation}
-\E[\kappa\mid p,X]
-=
-\zeta(p)\,\widehat\kappa^{\mathrm{int}}(p)
-+\bigl(1-\zeta(p)\bigr)\kappa^{\mathrm{ext}},
-\label{eq:kappa_external_blend}
-\end{equation}
-where
-\begin{equation}
-\zeta(p):=
-\frac{\phi^{-1}\sum_{i=1}^{n}E_i q_{n-i+1}}{bE_1+\phi^{-1}\sum_{i=1}^{n}E_i q_{n-i+1}}.
-\label{eq:zeta_external}
-\end{equation}
-Thus the origin-side prior controls the similarity of the origin-year loss ratios, while the common-rate gamma prior on the development scale supplies an exact credibility blend between the internal Cape Cod loss ratio and an external benchmark loss ratio. 
-In actuarial terms, development credibility and level credibility are distinct pieces of information. The former is handled by the exposure-centred origin prior; the latter is handled by the common-rate gamma prior.
 
 
 
-\section{Illustrative example: the Saluz Cape Cod data}\label{sec:example}
+\section{Illustrative numerical example}\label{sec:example}
 
-To illustrate the method we use the numerical example from \citet{Saluz2015CapeCod}, 
-who in turn use the W\"uthrich--Merz payments triangle together with on-level premiums. 
-Table~\ref{tab:saluz_incremental} gives the incremental payments and premiums, and Table~\ref{tab:saluz_exposures} gives the 
-implied exposure-based index for the exposure-centred prior. 
-
+To illustrate the method we use the numerical example from  \citet{Saluz2015CapeCod}. This is a particularly useful benchmark because \citet{Saluz2015CapeCod} report 
+the classical Cape Cod results, together with approximate reserve standard deviations based on maximum likelihood estimates on the same data. 
+The example therefore provides a direct numerical comparison between the classical Cape Cod estimator, the exact data-driven ODP or Chain Ladder endpoint, and the new hierarchical model derived in this paper. It also makes the practical interpretation of the model transparent: the exposure benchmark does not replace the data, but acts as a structured prior that stabilises the more immature origin-year estimates while leaving the mature part of the triangle essentially unchanged.
+ Table~\ref{tab:saluz_incremental} gives the incremental payments and Table~\ref{tab:saluz_exposures} gives the 
+premiums and implied exposure-based index for the exposure-centred prior. Note that here we have not adjusted the historical premiums for rate changes and other factors, which
+would be necessary in practice to obtain a more realistic exposure benchmark. 
 
 \begin{table}[htbp]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{r*{10}{r}r}
+\begin{tabular}{r*{10}{r}}
 \toprule
-Origin $i$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & Premium $E_i$ \\
+Origin $i$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10  \\
 \midrule
-1  & 5,946,975 & 3,721,237 & 895,717 & 207,761 & 206,704 & 62,124 & 65,813 & 14,850 & 11,129 & 15,814 & 15,473,558 \\
-2  & 6,346,756 & 3,246,406 & 723,221 & 151,797 & 67,824 & 36,604 & 52,752 & 11,186 & 11,646 &        & 14,882,436 \\
-3  & 6,269,090 & 2,976,223 & 847,053 & 262,768 & 152,703 & 65,445 & 53,545 & 8,924 &        &        & 14,456,039 \\
-4  & 5,863,015 & 2,683,224 & 722,532 & 190,653 & 132,975 & 88,341 & 43,328 &        &        &        & 14,054,917 \\
-5  & 5,778,885 & 2,745,229 & 653,895 & 273,395 & 230,288 & 105,224 &        &        &        &        & 14,525,373 \\
-6  & 6,184,793 & 2,828,339 & 572,765 & 244,899 & 104,957 &        &        &        &        &        & 15,025,923 \\
-7  & 5,600,184 & 2,893,207 & 563,114 & 225,517 &        &        &        &        &        &        & 14,832,965 \\
-8  & 5,288,066 & 2,440,103 & 528,042 &        &        &        &        &        &        &        & 14,550,359 \\
-9  & 5,290,793 & 2,357,936 &        &        &        &        &        &        &        &        & 14,461,781 \\
-10 & 5,675,568 &        &        &        &        &        &        &        &        &        & 15,210,363 \\
+1  & 5,946,975 & 3,721,237 & 895,717 & 207,761 & 206,704 & 62,124 & 65,813 & 14,850 & 11,129 & 15,814  \\
+2  & 6,346,756 & 3,246,406 & 723,221 & 151,797 & 67,824 & 36,604 & 52,752 & 11,186 & 11,646 &        \\
+3  & 6,269,090 & 2,976,223 & 847,053 & 262,768 & 152,703 & 65,445 & 53,545 & 8,924 &        &         \\
+4  & 5,863,015 & 2,683,224 & 722,532 & 190,653 & 132,975 & 88,341 & 43,328 &        &        &         \\
+5  & 5,778,885 & 2,745,229 & 653,895 & 273,395 & 230,288 & 105,224 &        &        &        &         \\
+6  & 6,184,793 & 2,828,339 & 572,765 & 244,899 & 104,957 &        &        &        &        &         \\
+7  & 5,600,184 & 2,893,207 & 563,114 & 225,517 &        &        &        &        &        &         \\
+8  & 5,288,066 & 2,440,103 & 528,042 &        &        &        &        &        &        &         \\
+9  & 5,290,793 & 2,357,936 &        &        &        &        &        &        &        &         \\
+10 & 5,675,568 &        &        &        &        &        &        &        &        &         \\
 \bottomrule
 \end{tabular}
 \caption{Incremental payments and premiums from the Saluz Cape Cod example.}
@@ -1155,78 +1114,131 @@ Origin $i$ & Premium $E_i$ & Relative premium $E_i/E_1$ \\
 
 \begin{table}[htbp]
 \centering
-\begin{tabular}{rrrrrrr}
+\begin{tabular}{lrrrrrr}
 \toprule
-Origin & CL LR & CC LR & Hier LR & CL reserve & CC reserve & Hier reserve \\
+ & \multicolumn{2}{c}{Chain Ladder} & \multicolumn{2}{c}{Hierarchical} & \multicolumn{2}{c}{Cape Cod} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+Origin & Reserve & LR & Reserve & LR & Reserve & LR \\
 \midrule
-1  & 0.7205 & 0.6737 & 0.7205 & 0 & 0 & 0 \\
-2  & 0.7165 & 0.6737 & 0.7165 & 15,126 & 15,208 & 15,181 \\
-3  & 0.7375 & 0.6737 & 0.7375 & 26,257 & 25,619 & 25,899 \\
-4  & 0.6943 & 0.6737 & 0.6944 & 34,538 & 35,874 & 35,199 \\
-5  & 0.6797 & 0.6737 & 0.6798 & 85,302 & 90,234 & 87,510 \\
-6  & 0.6717 & 0.6737 & 0.6719 & 156,494 & 166,584 & 160,630 \\
-7  & 0.6451 & 0.6737 & 0.6458 & 286,121 & 314,665 & 296,909 \\
-8  & 0.5983 & 0.6737 & 0.6002 & 449,167 & 528,056 & 477,047 \\
-9  & 0.6010 & 0.6737 & 0.6048 & 1,043,242 & 1,200,821 & 1,097,888 \\
-10 & 0.6329 & 0.6737 & 0.6407 & 3,950,815 & 4,240,563 & 4,069,910 \\
-\midrule
-Total & 0.6699 & 0.6737 & 0.6714 & 6,047,061 & 6,617,625 & 6,266,177 \\
+Origin 1 & 0 & 0.7205 & 0 & 0.7205 & 0 & 0.7205 \\
+Origin 2 & 15,126 & 0.7165 & 15,159 & 0.7165 & 15,209 & 0.7165 \\
+Origin 3 & 26,257 & 0.7375 & 26,000 & 0.7375 & 25,619 & 0.7375 \\
+Origin 4 & 34,538 & 0.6943 & 35,075 & 0.6944 & 35,874 & 0.6944 \\
+Origin 5 & 85,302 & 0.6797 & 87,294 & 0.6798 & 90,234 & 0.6800 \\
+Origin 6 & 156,494 & 0.6717 & 160,597 & 0.6719 & 166,584 & 0.6723 \\
+Origin 7 & 286,121 & 0.6451 & 297,878 & 0.6459 & 314,665 & 0.6470 \\
+Origin 8 & 449,167 & 0.5983 & 482,247 & 0.6006 & 528,056 & 0.6037 \\
+Origin 9 & 1,043,242 & 0.6010 & 1,112,597 & 0.6058 & 1,200,821 & 0.6119 \\
+Origin 10 & 3,950,815 & 0.6329 & 4,105,566 & 0.6431 & 4,240,563 & 0.6519 \\
+Total & 6,047,061 & 0.6699 & 6,322,415 & 0.6717 & 6,617,625 & 0.6737 \\
 \bottomrule
 \end{tabular}
-\caption{Posterior estimated ultimate loss ratios and reserves by origin year under Chain Ladder, Cape Cod and the hierarchical credibility model.}
+\caption{Posterior mean reserves and ultimate loss ratios by origin year, using the exact analytic approach.}
 \label{tab:saluz_results}
 \end{table}
 
 \begin{table}[htbp]
 \centering
-\begin{tabular}{lrrr}
+\begin{tabular}{lrrrrrrr}
 \toprule
-Method & Selected concentration & Total reserve & Reserve SD \\
+ & \multicolumn{2}{c}{Chain Ladder} & \multicolumn{2}{c}{Hierarchical} & \multicolumn{2}{c}{Cape Cod} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+Origin & SD & CoV (\%) & SD & CoV (\%) & SD & CoV (\%) \\
 \midrule
-Chain Ladder & $\tau=0$ & 6,047,061 & 521,572 \\
-Hierarchical & $\widehat{\tau}_{\mathrm{EB}}=1960$ & 6,266,177 & 504,022 \\
-Cape Cod & $\tau\to \infty$ & 6,617,625 & 476,815 \\
+Origin 1 & 0 &  & 0 &  & 0 &  \\
+Origin 2 & 25,332 & 167.47 & 25,356 & 167.27 & 25,393 & 166.96 \\
+Origin 3 & 31,647 & 120.53 & 31,403 & 120.78 & 31,041 & 121.16 \\
+Origin 4 & 34,357 & 99.48 & 34,686 & 98.89 & 35,172 & 98.04 \\
+Origin 5 & 50,589 & 59.31 & 51,251 & 58.71 & 52,218 & 57.87 \\
+Origin 6 & 66,816 & 42.70 & 67,696 & 42.15 & 68,958 & 41.40 \\
+Origin 7 & 88,204 & 30.83 & 89,814 & 30.15 & 92,035 & 29.25 \\
+Origin 8 & 109,265 & 24.33 & 112,633 & 23.36 & 116,992 & 22.16 \\
+Origin 9 & 170,259 & 16.32 & 171,871 & 15.45 & 173,182 & 14.42 \\
+Origin 10 & 401,963 & 10.17 & 361,871 & 8.81 & 321,734 & 7.59 \\
+Total & 521,137 & 8.62 & 496,974 & 7.86 & 476,815 & 7.21 \\
 \bottomrule
 \end{tabular}
-\caption{Total reserve and reserve standard deviation for the three models, using the selected ODP scale parameter $\phi=21,610.84$. }
-\label{tab:saluz_totals}
+\caption{Posterior predictive standard deviation and coefficient of variation (CoV) for the total reserve and by origin, using the exact analytic approach.}
+\label{tab:saluz_reserve_sd_analytic}
 \end{table}
 
 
-For the numerical illustration we use the empirical Bayes plug-in estimate obtained by maximising the marginal likelihood in \eqref{eq:tau_posterior}, rather than averaging over a hyperposterior for $\tau$. This gives
-\[
-\widehat{\tau}_{\mathrm{EB}}=1960.
-\]
+For the numerical illustration of the hierarchical model  we use the plug-in estimate of $\tau$ obtained by maximising the marginal likelihood in \eqref{eq:tau_posterior}, rather than averaging over a hyperposterior for $\tau$. This gives
+\begin{equation}
+\widehat{\tau}_{\mathrm{ML}}\approx 346.
+\end{equation}
+
+
+\begin{figure}[htbp]
+\centering
+\includesvg[width=0.82\textwidth]{tau_likelihood_plot}
+\caption{Normalised marginal likelihood $L_m(\tau;X)/L_m(\widehat \tau_{ML};X)$ as a function of $\tau$, with the maximum at $\widehat{\tau}_{\mathrm{ML}}=346$}
+\label{fig:tau_likelihood}
+\end{figure}
+
+Figure~\ref{fig:tau_likelihood} shows the normalised marginal likelihood as a function of $\tau$. The maximum is quite well-defined. It is also interesting to note that 
+the marginal likelihood is quite flat for large $\tau$. In fact the marginal likelihood is finite as $\tau\rightarrow\infty$, so the posterior is improper unless a proper prior is placed on $\tau$.
+
 Using the selected ODP scale parameter $\phi=21,610.84$, estimated from the Cape Cod fitted triangle as in 
 \citet{Saluz2015CapeCod}, the resulting posterior mean reserves and reserve standard deviations are shown in 
-Tables~\ref{tab:saluz_results} and \ref{tab:saluz_totals}. This scale is treated as a simple plug-in quantity 
-for clarity. One could instead base it on the Chain Ladder fitted triangle, or iterate by re-estimating $\phi$ from the hierarchical fitted triangle itself, but we do not pursue those refinements here. A fully Bayesian treatment of $\tau$ via \eqref{eq:tau_posterior} remains available, but the empirical Bayes plug-in is sufficient for the present illustration.
+Tables~\ref{tab:saluz_results} and \ref{tab:saluz_reserve_sd_analytic}. This scale is treated as a simple plug-in quantity 
+for clarity. One could instead base it on the Chain Ladder fitted triangle, or iterate by re-estimating $\phi$ from the hierarchical fitted triangle itself, but we do not pursue those refinements here. A fully Bayesian treatment of $\tau$ via \eqref{eq:tau_posterior} remains available, but the empirical Bayes plug-in is sufficient for the present illustration. The results for
+the Cape Cod method are identical to those reported by \citet{Saluz2015CapeCod}.
 
-Several points are worth noting. First, the total hierarchical reserve is $6,266,177$, which lies neatly between the Chain Ladder total of $6,047,061$ and the Cape Cod total of $6,617,625$. Measured on this scale, the fitted hierarchical model sits about $61.6\%$ of the way from Cape Cod back toward Chain Ladder. The corresponding total reserve standard deviation is $504,022$, again between the Chain Ladder and Cape Cod values of $521,573$ and $476,816$ respectively.
+Several points are worth noting. First, the total hierarchical reserve is $ 6,322,415$, which lies neatly between the Chain Ladder total of $6,047,061$ and the Cape Cod total of 
+$6,617,625$. Measured on this scale, the fitted hierarchical model sits about $51.7\%$ of the way from Cape Cod back toward Chain Ladder. 
+The corresponding total reserve standard deviation is $496,974 $, again between the Chain Ladder and Cape Cod values of $521,137$ and $476,815$ respectively.
 
-Second, the origin-year results show the intended credibility pattern very clearly. For the mature years there is little room for any method to differ, and the three models are almost identical. For the less mature years the Chain Ladder loss ratios become more volatile, while Cape Cod imposes the flat common loss ratio $0.6737$ on every origin year. The hierarchical model shrinks toward the premium benchmark, but only partially. For example, for origin year 10 the posterior mean ultimate loss ratio is $0.6407$, compared with $0.6329$ under Chain Ladder and $0.6737$ under Cape Cod, and the reserve of $4,069,910$ again lies between the two endpoints. A similar pattern appears for origin years 8 and 9, where the low Chain Ladder loss ratios are pulled upward, but not all the way to the Cape Cod level.
 
-Third, the raw numerical value $\widehat{\tau}_{\mathrm{EB}}=1960$ should not be interpreted on its own as implying an almost-degenerate Cape Cod fit. 
-The parameter $\tau$ operates on the scale of the beta posterior parameter counts, namely the scaled data volumes entering $s_i$ and $d_i$, rather than on the raw claim amounts themselves. In the beta posterior parameters the credibility effect is governed by $\tau$ relative to the scaled paid amounts and cumulative totals entering $u_i(\tau)$ and $v_i(\tau)$. In this example those count-like terms are themselves large, so even a numerically large value of $\tau$ still produces only moderate shrinkage in the immature origin years. This is why the fitted model remains materially distinct from Cape Cod, despite the seemingly large raw plug-in value.
+\begin{figure}[htbp]
+\centering
+\IfFileExists{effective_credibility_plot.svg}{\includesvg[width=0.82\textwidth]{effective_credibility_plot}}{\fbox{\parbox[c][0.32\textheight][c]{0.78\textwidth}{\centering Placeholder for effective credibility plot figure}}}
+\caption{Effective credibility weight for each origin year under the hierarchical model. 100\% corresponds to 
+the Chain Ladder estimate, while 0\% corresponds to the Cape Cod estimate.}
+\label{fig:effective_credibility}
+\end{figure}
 
-This is a particularly useful benchmark because \citet{Saluz2015CapeCod} report the classical Cape Cod results on the same data. The example therefore provides a direct numerical comparison between the classical Cape Cod estimator, the exact data-driven ODP or Chain Ladder endpoint, and the new Bayesian credibility-weighted blend derived in this paper. It also makes the practical interpretation of the model transparent: the exposure benchmark does not replace the data, but acts as a structured prior that stabilises the more immature origin-year estimates while leaving the mature part of the triangle essentially unchanged.
+
+Second, the origin-year results show the intended credibility pattern very clearly. The hierarchical model 
+shrinks the loss ratios toward the Cape Cod estimates, but only partially. 
+For example, for origin year 10 the posterior mean ultimate loss ratio is $64.31\%$, 
+compared with $63.29\%$ under Chain Ladder and $65.19\%$ under Cape Cod. A similar pattern appears for origin years 8 and 9, where the low Chain Ladder 
+loss ratios are pulled upward, but not all the way to the Cape Cod level. To quantify this more clearly, we define the 
+\emph{effective credibilty weight} by the relative position of the hierarchical estimate between the Cape Cod and Chain Ladder estimates, that is:
+\begin{equation}
+(R(\widehat \tau_{ML})-R^{\textrm{CC}})/ (R^{\textrm{CL}}-R^{\textrm{CC}})
+\end{equation}
+An effective credibility weight of 100\% corresponds to the Chain Ladder estimate, while 0\% corresponds to the Cape Cod estimate.
+Figure~\ref{fig:effective_credibility} shows the effective credibility weight for each origin year.  
+Here it can be seen that the most recent years are more heavily weighted towards the Cape Cod estimate, with the 
+weight shifting closer to the Chain Ladder estimate for older origin years. 
+This is consistent with established actuarial intuition about the relative reliability of the Chain Ladder and 
+Cape Cod methods. It is common practice, particularly for longer-tailed and/or volatile lines of business to use BF/Cape Cod estimates 
+for more recent origin years, where the development is relatively immature and it is not clear whether
+the observed experience is a statistical fluctuation or evidence of a trend, whereas Chain Ladder estimates are used for older years which are more mature and the trend is more established. The actuary may even blend between Cape Cod and Chain Ladder estimates in intermediate years. The hierarchical method presented here
+provides a formal statistical basis for this practice, with the effective credibility weight automatically determined by the data 
+and the exposure benchmark. While the data used for illustration in this paper is relatively short-tailed and well behaved,  other examples we have tried with
+longer tails show this effect more significantly, with more weight given to the Cape Cod method in more recent years. A future paper will investigate
+the credibility weight empirically across other triangles from different lines of business and other characteristics.
 
 The exact posterior predictive structure derived in \Cref{sec:predictive} also makes it possible to simulate the full reserve distribution directly. 
-Using the recursive construction based on the algorithm in Section~\ref{sec:predictive_simulation_general}, we obtained the predictive summaries shown in Table~\ref{tab:saluz_predictive_summary}. The simulated predictive means and standard deviations are very close to the corresponding analytical values in Tables~\ref{tab:saluz_results} and \ref{tab:saluz_totals}, as they should be. The simulation is useful mainly as a confirmation and visualisation tool. The real advantage of the present framework is that the key reserve moments and covariance structure are already available analytically, without having to rely on long MCMC runs, convergence diagnostics or bootstrap approximations. More importantly, the full predictive distributions show how the credibility bridge acts not only on point estimates but on the whole reserve range. That is precisely the form needed for modern capital applications, since quantiles and tail functionals such as VaR and TVaR can be read directly from the simulated predictive distribution.
-
+Using the recursive construction based on the algorithm in Section~\ref{sec:predictive_simulation_general}, we obtained the predictive summaries shown in Table~\ref{tab:saluz_predictive_summary}. The simulated predictive means and standard deviations are very close to the corresponding analytical values in Tables~\ref{tab:saluz_results} 
+and \ref{tab:saluz_reserve_sd_analytic}, as they should be. The simulation is useful as a confirmation and visualisation tool. More importantly, the simulated distributions are precisely the form needed for capital modelling applications, 
+since quantiles and risk measures such as TVaR can be read directly from the simulated predictive distribution.
 
 \begin{table}[htbp]
 \centering
-\begin{tabular}{lrrrrrrr}
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lrrrrrrrr}
 \toprule
-Method & Mean & SD & CV & 75\% & 90\% & 95\% & 99\% \\
+Method & Mean & SD & CoV (\%)& 75\% & 90\% & 95\% & 99\% & 99.5\% \\
 \midrule
-Chain Ladder & 6,046,624 & 521,699 & 0.0863 & 6,396,808 & 6,720,971 & 6,937,079 & 7,326,074 \\
-Hierarchical & 6,265,283 & 504,241 & 0.0805 & 6,591,306 & 6,915,468 & 7,109,966 & 7,498,961 \\
-Cape Cod & 6,615,425 & 476,394 & 0.0720 & 6,915,468 & 7,239,631 & 7,412,518 & 7,801,513 \\
+Chain Ladder & 6,046,569 & 520,717 & 8.6118 & 6,385,561 & 6,723,529 & 6,930,565 & 7,341,631 & 7,497,866 \\
+Hierarchical & 6,322,331 & 496,454 & 7.8524 & 6,645,010 & 6,965,277 & 7,163,647 & 7,562,709 & 7,715,177 \\
+Cape Cod & 6,618,020 & 476,628 & 7.2020 & 6,927,644 & 7,236,033 & 7,427,018 & 7,807,918 & 7,954,509 \\
 \bottomrule
 \end{tabular}
-\caption{Posterior predictive summaries for the total reserve, based on the simulation algorithm described in Section~\ref{sec:predictive}.}
+\caption{Posterior predictive summaries for the total reserve, based on 1,000,000 simulations using the simulation algorithm described in Section~\ref{sec:predictive}.}
 \label{tab:saluz_predictive_summary}
 \end{table}
 
@@ -1238,31 +1250,16 @@ Cape Cod & 6,615,425 & 476,394 & 0.0720 & 6,915,468 & 7,239,631 & 7,412,518 & 7,
 \label{fig:saluz_predictive_cdf}
 \end{figure}
 
-\begin{figure}[htbp]
-\centering
-\IfFileExists{saluz_total_reserve_density.svg}{\includesvg[width=0.82\textwidth]{saluz_total_reserve_density}}{\fbox{\parbox[c][0.32\textheight][c]{0.78\textwidth}{\centering Placeholder for total reserve density figure}}}
-\caption{Posterior predictive densities for the total reserve under Chain Ladder, the hierarchical credibility model and Cape Cod.}
-\label{fig:saluz_predictive_density}
-\end{figure}
-
 
 \begin{figure}[htbp]
 \centering
 \IfFileExists{saluz_posterior_lr_means.svg}{\includesvg[width=0.82\textwidth]{saluz_posterior_lr_means}}{\fbox{\parbox[c][0.32\textheight][c]{0.78\textwidth}{\centering Placeholder for total reserve density figure}}}
-\caption{Expected posterior loss ratio means for the total reserve under Chain Ladder, the hierarchical credibility model and Cape Cod.}
+\caption{Expected posterior loss ratio means under Chain Ladder, the hierarchical credibility model and Cape Cod.}
 \label{fig:saluz_lr_means}
 \end{figure}
 
-The predictive distributions sharpen the interpretation of the hierarchical fit. 
-The hierarchical curve lies between the Chain Ladder and Cape Cod curves throughout the body of the distribution, with upper quantiles that are also intermediate: 
-the $95\%$ predictive quantile is $7,109,966$ under the hierarchical model, compared with $6,937,079$ for Chain Ladder and $7,412,518$ for Cape Cod. 
-Likewise, the $99\%$ quantile is $7,498,961$, again between the two endpoints. The ordering of the coefficients of variation, $0.0863$ for Chain Ladder, $0.0805$ for the hierarchical model and $0.0720$ for Cape Cod, shows that the prior information reduces relative uncertainty, but only to the extent justified by the data.
-
-The distribution plots are also instructive in a more qualitative sense. The hierarchical posterior predictive distribution is not merely a location shift between the two classical methods. 
-Rather, it preserves the heavier right tail and broader spread associated with the data-driven endpoint more than Cape Cod does, while still damping the most extreme uncertainty generated by the immature origin years. In that sense the model behaves as a genuine credibility-weighted predictive distribution, not only as a compromise in posterior mean reserve.
-
 In Figure~\ref{fig:saluz_lr_means} we show the expected posterior loss ratio means, 
-that is $\mathbb{E}[\mu_i \sum_{j=1}^n{\beta_j}/E_i|X]$ under the three models. Note that this
+that is $\mathbb{E}[\mu_i \sum_{j=1}^n{\beta_j}/E_i|X]$, under the three models. Note that this
 quantity is not the same as the mean posterior ultimate loss ratio which incorporates the observed claims to date in the ultimate claims. Instead this quantity shows
 the effect of the underlying origin period trends. 
 The hierarchical model again lies between the two endpoints, with a profile showing a clear shrinkage effect from the Chain Ladder toward the constant loss ratio benchmark.
@@ -1279,10 +1276,10 @@ The practical value of this result is substantial. The model admits explicit clo
 This unification appears, to our knowledge, to be new. Previous Bayesian ODP papers have linked the model to familiar credibility-style reserving methods, but not through an exact closed-form origin-side predictive construction with explicit reserve-uncertainty formulas. Classical uncertainty papers for BF and Cape Cod provide important results, but do not supply a fully Bayesian ODP predictive distribution with origin-side priors in closed form. The present paper therefore helps close a genuine gap between actuarial practice and Bayesian stochastic reserving theory. 
 
 
-The framework also has attractive extensions. A practitioner who wishes to specify priors directly on year-on-year loss-ratio changes can do so through a prior on the relativity index $\mu$; One may centre the benchmark relativity index on pricing-based or underwriting-based expected loss-ratio structures instead of exposures, incorporate covariate information into the prior centre, or replace the single shrinkage parameter $\tau$ by a low-dimensional hyperprior family. In that sense the benchmark relativity index is a direct mathematical bridge between pricing and reserving, with the hierarchy supplying principled partial pooling across origin periods as claims experience emerges.
+The framework also has attractive extensions. A practitioner who wishes to specify priors directly on year-on-year loss-ratio changes can do so through a prior on the relativity index $\mu$. One may centre the benchmark relativity index on pricing-based or underwriting-based expected loss-ratio structures instead of exposures, incorporate covariate information into the prior centre, or replace the single shrinkage parameter $\tau$ by a low-dimensional hyperprior family. In that sense the benchmark relativity index is a direct mathematical bridge between pricing and reserving, with the hierarchy supplying principled partial pooling across origin periods as claims experience emerges.
 
-A second extension developed here places a common-rate gamma prior on the development scales. This introduces prior credibility on the overall Cape Cod loss-ratio level while preserving exact tractability through an augmented inverse-generalised-Dirichlet transformation. The resulting posterior mean of the common loss ratio is an exact credibility blend between the internal Cape Cod estimate and an external benchmark loss ratio. This sits naturally alongside the origin-side hierarchy, 
-so that development credibility and level credibility can be controlled separately within the same model.
+A second extension developed here places a common-rate gamma prior on the development scales. In the strong exposure-centred origin-prior limit, this introduces prior credibility on the overall Cape Cod loss-ratio level. The resulting posterior mean of the common loss ratio is an exact credibility blend between the internal Cape Cod estimate and an external benchmark loss ratio. This sits naturally alongside the origin-side hierarchy, 
+so that profile credibility and level credibility can be controlled separately within the same model.
 
 \appendix
 
@@ -1298,7 +1295,7 @@ Let $e_i=E_i/E_1$ and suppose that, before observing the triangle, the origin-ye
 \qquad i=2,\dots,n,
 \label{eq:lambda_prior_tau_app}
 \end{equation}
-under the shape-rate parameterisation. For $i\ge2$ the prior mean of $\Lambda_i$ is $\tau/\beta$, and its coefficient of variation is $(\tau e_i)^{-1/2}$. Thus the prior loss-ratio mean is common across origin periods, while the prior dispersion is inversely proportional to the square root of exposure.
+under the shape-rate parameterisation. For $i\ge2$ the prior mean of $\Lambda_i$ is $\tau/\beta$, and its coefficient of variation is $(\tau e_i)^{-1/2}$. Thus, for origin periods $i\ge2$, the prior loss-ratio mean is common across origin periods, the prior variance is inversely proportional to exposure, and the coefficient of variation is inversely proportional to the square root of exposure. Origin period 1 has one additional unit of shape; this is a harmless normalising pseudo-count used to anchor the relative index under the convention $\mu_1=1$.
 
 Define relative expected losses by
 \begin{equation}

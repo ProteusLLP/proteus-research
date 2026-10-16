@@ -1,0 +1,538 @@
+\documentclass[aps,pre,draft]{revtex4-2}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{geometry}
+\geometry{a4paper,margin=1in}
+\usepackage{setspace}
+%\usepackage{cite}
+\usepackage{booktabs}
+\usepackage{graphicx} % for \resizebox
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{url}
+
+\begin{document}
+\title{The Predictive Distribution of the Over-dispersed Poisson Claims Reserving Model}
+\author{James P. Norman}
+\email{james.norman@proteusllp.com}
+\affiliation{Proteus Consulting LLP}
+\homepage{www.proteusllp.com}
+\date{3, March 2025 \\ ab Revised:
+\today}
+
+
+\begin{abstract}
+I derive analytic results for the Bayesian posterior predictive distribution of the over-dispersed Poisson model for claims reserves. Informative priors for the development factors are considered, allowing external information to be reflected in the distribution of claims reserves. The predictive distribution is shown to have a simple recursive representation in terms of beta distributions for the development period parameters, and gamma distributions for the origin period parameters. For a certain choice of noninformative priors the expectation value of the predictive distribution is shown to be exactly the chain-ladder estimate. An expression for the prediction variance is derived, which can be easily implemented in spreadsheet packages, and should be of interest to practising actuaries. Further, a simple algorithm for generating simulations from the predictive distribution is presented, which provides an exact alternative to the common ``bootstrap'' approximation.
+\end{abstract}
+
+\maketitle
+\section{Introduction}
+
+The over-dispersed Poisson (ODP) model for claims reserves was introduced by Renshaw and Verrall \cite{renshaw1998stochastic} as a statistical model underlying the chain-ladder technique for estimating outstanding insurance liabilities. Together with Mack’s model \cite{mack1993distribution}, the ODP model is one of the most widely used models for quantifying the uncertainty in claims reserves in practice \cite{roc2007best}, and hence is worthy of detailed study. A key feature of both of these models is that point estimates of claims reserves reproduce those of the common chain-ladder technique. However, obtaining the predictive distributions of future claims payments from these models has relied on numerical techniques, such as the bootstrap or approximations based on moments. Analytic formulas for the mean squared error of Mack’s model were derived in \cite{mack1993distribution}.
+
+\section{ODP Model and Notation}
+
+\subsection{Definitions}
+
+In the over-dispersed Poisson model, incremental claims $X_{ij}$ for origin period $i=1,\dots,n$ and development period $j=1,\dots,n$, given parameters 
+\[
+\Theta = (\mu_1,\dots,\mu_n,\beta_1,\dots,\beta_n,\phi),
+\]
+are conditionally independent random variables with
+\begin{equation}\label{eq:poi}
+X_{ij}\mid\Theta \sim \phi\operatorname{Poi}\Bigl(\frac{\mu_i\beta_j}{\phi}\Bigr),
+\end{equation}
+where
+\begin{equation}\label{eq:beta_sum}
+\sum_{j=1}^{n}\beta_j = 1.
+\end{equation}
+Under this parameterisation, $\{\mu_i,\,i=1,\dots,n\}$ represent the expected total claims in origin period $i$, while $\{\beta_j,\,j=1,\dots,n\}$ represent the expected proportion of the 
+ultimate claims paid in development period $j$. 
+
+\subsection{Bayesian Estimation}
+
+Given an observed incremental claims triangle of size $n$, 
+\[
+X_n = \{X_{ij} : i=1,\dots,n;\; j=1,\dots,n-i+1\},
+\]
+the likelihood is
+\begin{equation}\label{eq:likelihood}
+L(X_n\mid\Theta)=\prod_{i+j\le n+1} \frac{\Bigl(\frac{\mu_i\beta_j}{\phi}\Bigr)^{X_{ij}/\phi}\exp\Bigl(-\frac{\mu_i\beta_j}{\phi}\Bigr)}{(X_{ij}/\phi)!}.
+\end{equation}
+In this paper (as in \cite{england2012bayesian}) the dispersion parameter $\phi$ is treated as known and is dropped from the parameter set to be estimated. For notational convenience, denote the cumulative claims in origin period $i$ up to development period $j$ as
+\[
+D_{ij}=\sum_{k=1}^{j}X_{ik}.
+\]
+Further, denote the total observed claims in origin period $i$ as 
+\[
+D_i=D_{i,n-i+1},
+\]
+and the total observed claims in development period $j$ as
+\[
+C_j=\sum_{i=1}^{n-j+1}X_{ij}.
+\]
+Also denote the scaled versions (dividing by $\phi$) by
+\[
+x_{ij}=\frac{X_{ij}}{\phi},\quad d_{ij}=\frac{D_{ij}}{\phi},\quad d_i=\frac{D_i}{\phi},\quad c_j=\frac{C_j}{\phi}.
+\]
+
+Using Bayes’ Theorem, the posterior density of $\Theta$ is
+\begin{equation}\label{eq:posterior}
+p(\Theta\mid X_n)\propto p(\Theta)\prod_{i+j\le n+1}\Bigl(\frac{\mu_i\beta_j}{\phi}\Bigr)^{x_{ij}}\exp\Bigl(-\frac{\mu_i\beta_j}{\phi}\Bigr),
+\end{equation}
+where $p(\Theta)$ is the prior density. Using independent priors for $\mu$ and $\beta$, so that 
+\[
+p(\Theta)=\rho(\mu)\pi(\beta),
+\]
+and setting noninformative logarithmic priors for $\mu$, $\rho(\mu)\propto\prod_i\mu_i^{-1}$, after collecting terms in $\mu$ one obtains
+\begin{equation}\label{eq:posterior2}
+p(\Theta\mid X_n)\propto\pi(\beta)\Biggl(\prod_{j=1}^{n}\beta_j^{c_j}\Biggr)
+\Biggl\{\prod_{i=1}^{n}\mu_i^{d_i-1}\exp\Biggl(-\mu_i\sum_{j=1}^{n-i+1}\frac{\beta_j}{\phi}\Biggr)\Biggr\}.
+\end{equation}
+
+From the term in curly brackets in (\ref{eq:posterior2}), it can be recognised that, conditional on $\beta$, the parameters $\mu_i$ have independent gamma posterior distributions:
+\begin{equation}\label{eq:gamma_post}
+\mu_i\mid X,\beta\sim \operatorname{Gamma}\Bigl(d_i,\sum_{j=1}^{n-i+1}\frac{\beta_j}{\phi}\Bigr),
+\end{equation}
+where the Gamma density is parameterised as
+\[
+f(y;a,b)=\frac{b^a}{\Gamma(a)}y^{a-1}e^{-by}.
+\]
+By integrating over the $\mu$ parameters, the marginal posterior density of the $\beta$ parameters is found to be
+\begin{equation}\label{eq:beta_post}
+p(\beta\mid X_n)\propto\pi(\beta)\prod_{j=1}^{n}\beta_j^{c_j}\Biggl(\sum_{k=1}^{n-j+1}\beta_k\Biggr)^{-d_j}.
+\end{equation}
+Equation (\ref{eq:beta_post}) is proportional to the density of a generalised Dirichlet distribution \cite{chang2010structural}. Clark \cite{clark} proposed the generalised Dirichlet distribution as a model for claims development (although not in relation to the ODP model). 
+It is therefore interesting to see how the generalised Dirichlet arises naturally from the ODP model. The generalised Dirichlet can be related to $n-1$ independent beta distributions by transforming to new variables $\psi_j$:
+\begin{equation}\label{eq:psi}
+\psi_j=\frac{\beta_j}{1-\sum_{k=j+1}^{n}\beta_k},
+\end{equation}
+with $\psi_1=1$ and $\psi_n=\beta_n$. After suitable relabelling, the posterior for $\psi$ is found to be
+\begin{equation}\label{eq:psi_post}
+p(\psi\mid X_n)\propto \pi(\psi)\prod_{j=2}^{n}\psi_j^{c_j}\Bigl(1-\psi_j\Bigr)^{\sum_{k=1}^{j-1}(c_k-d_{n-k+1})},
+\end{equation}
+where $\pi(\psi)$ is the prior for $\psi$. Noting that the term in the product is proportional to a beta density, if one chooses conjugate beta priors
+\begin{equation}\label{eq:psi_prior}
+\pi(\psi_j)\propto \psi_j^{a_j-1}(1-\psi_j)^{b_j-1},
+\end{equation}
+and, with the relation
+\begin{equation}\label{eq:sum_relation}
+\sum_{k=1}^{j-1}(c_k-d_{n-k+1})=\sum_{i=1}^{n-j+1}d_{i,j-1},
+\end{equation}
+then the marginal posterior distributions of the $\psi_j$ are independent beta distributions:
+\begin{equation}\label{eq:psi_beta}
+\psi_j\sim \operatorname{Beta}\Bigl(a_j+c_j,\,b_j+\sum_{i=1}^{n-j+1}d_{i,j-1}\Bigr).
+\end{equation}
+
+\section{Expected Claims Reserve}
+
+Claims reserving is concerned with estimating the expected future claims payments $X_{ij}$ for $j>n-i+1$. The expected claims in origin period $i$ and development period $j$, conditional on $\Theta$, is simply $\mu_i\beta_j$. In this section the posterior expectation of the future claims payments, given the observed data $X_n$ and the prior (\ref{eq:psi_prior}), is derived.
+
+For notational convenience (and to draw the link with the chain-ladder), we consider the expected cumulative claims
+\begin{equation}\label{eq:expected_cum}
+\mathbb{E}[D_{ij}\mid X_n]=D_i+\sum_{j=n-i+2}^{n}\mathbb{E}[\mu_i\beta_j\mid X_n].
+\end{equation}
+Defining
+\begin{equation}\label{eq:gamma_def}
+\gamma_i=\mu_i\sum_{j=1}^{n-i+1}\beta_j,
+\end{equation}
+from (\ref{eq:gamma_post}) the posterior distribution of $\gamma_i$ is
+\begin{equation}\label{eq:gamma_posterior}
+\gamma_i\mid X_n,\beta\sim \operatorname{Gamma}(d_i,\phi^{-1}),
+\end{equation}
+with the $\gamma_i$ mutually independent and independent of $\beta$. Conditional on $\Theta$, the expected cumulative claims in origin period $i$ up to development period $j\ge n-i+2$ is
+\begin{equation}\label{eq:cum_expected_theta}
+\mathbb{E}[D_{ij}\mid\Theta]=D_i+\gamma_i\Biggl(\prod_{k=n-i+2}^{j}\frac{1}{1-\psi_k}-1\Biggr).
+\end{equation}
+Using the relations
+\begin{equation}\label{eq:beta_psi_relation}
+\beta_j=\psi_j\prod_{k=j+1}^{n}(1-\psi_k),
+\end{equation}
+and
+\begin{equation}\label{eq:complement}
+1-\sum_{k=j}^{n}\beta_k=\prod_{k=j}^{n}(1-\psi_k),
+\end{equation}
+one obtains
+\begin{equation}\label{eq:simplified_term}
+\frac{\sum_{k=n-i+2}^{j}\beta_k}{1-\sum_{k=n-i+2}^{j}\beta_k}=\prod_{k=n-i+2}^{j}\frac{1}{1-\psi_k}-1.
+\end{equation}
+Since $\mathbb{E}[\gamma_i\mid X_n]=D_i$ and the $\gamma$ and $\psi$ parameters are independent, the posterior expected cumulative claims becomes
+\begin{equation}\label{eq:expected_cum_final}
+\mathbb{E}[D_{ij}\mid X_n]=D_i\prod_{k=n-i+2}^{j}\mathbb{E}\Biggl[\frac{1}{1-\psi_k}\Biggm| X_n\Biggr].
+\end{equation}
+For a beta variable $Y\sim \operatorname{Beta}(a,b)$ the expected value of $\frac{1}{1-Y}$ is $\frac{a+b-1}{b-1}$; hence, defining
+\[
+\lambda_j=\frac{1}{1-\psi_j},\quad \hat{\lambda}_j=\mathbb{E}[\lambda_j\mid X_n],
+\]
+one finds
+\begin{equation}\label{eq:lambda_hat}
+\hat{\lambda}_j=\frac{\sum_{i=1}^{n-j+1}D_{i,j}+\phi(a_j+b_j-1)}{\sum_{i=1}^{n-j+1}D_{i,j-1}+\phi(b_j-1)},
+\end{equation}
+so that the posterior expectation of the cumulative claims is
+\begin{equation}\label{eq:expected_final}
+\mathbb{E}[D_{ij}\mid X_n]=D_i\prod_{k=n-i+2}^{j}\hat{\lambda}_k.
+\end{equation}
+It can be seen that the parameters $\lambda_j$, $j=2,\dots,n$, can be identified as development factors. In particular, letting 
+\[
+a_j=0,\quad b_j=1,\quad j=2,\dots,n,
+\]
+(which corresponds to the noninformative prior $\pi(\psi_j)\propto\psi_j^{-1}$) the posterior expectation of the development factors is simply the standard chain-ladder estimate:
+\begin{equation}\label{eq:chain_ladder}
+\hat{\lambda}^{\text{CL}}_j=\frac{\sum_{i=1}^{n-j+1}D_{ij}}{\sum_{i=1}^{n-j+1}D_{i,j-1}},
+\end{equation}
+and hence the posterior expectation of the total future claims exactly matches the chain-ladder estimate.
+
+Alternative prior distributions (with different $a_j$ and $b_j$) lead to different posterior expectations. For example, if there is prior information on the mean and variance of the development factors, then by the properties of the beta distribution the prior mean and variance can be expressed in terms of $a_j$ and $b_j$:
+\begin{equation}\label{eq:prior_mean}
+\mathbb{E}[\lambda_j]=\frac{a_j+b_j-1}{b_j-1},
+\end{equation}
+and
+\begin{equation}\label{eq:prior_var}
+\operatorname{Var}[\lambda_j]=\frac{a_j(a_j+b_j-1)}{(b_j-1)^2(b_j-2)}
+\end{equation}
+By inverting these, one may express the prior parameters in terms of the prior mean and variance.
+
+\section{Prediction Error}
+
+The analytic form of the posterior distribution derived above allows an exact expression for the posterior prediction error of the total future claims payments.
+
+Using the law of total variance, the variance of the posterior predictive distribution for the total cumulative claims (or “ultimate” claims) of a single origin period, $U_i=D_{in}$, can be written as
+\begin{equation}\label{eq:var_ui}
+\operatorname{Var}[U_i\mid X_n]=\operatorname{Var}\Bigl(\mu_i\sum_{j=n-i+2}^{n}\beta_j\mid X_n\Bigr)+\phi\,\mathbb{E}\Bigl(\mu_i\sum_{j=n-i+2}^{n}\beta_j\mid X_n\Bigr).
+\end{equation}
+Using (\ref{eq:cum_expected_theta}) this becomes
+\begin{equation}\label{eq:var_ui2}
+\operatorname{Var}[U_i\mid X_n]=\operatorname{Var}\Bigl(\gamma_i\Bigl(\prod_{k=n-i+2}^{n}\lambda_k-1\Bigr)\mid X_n\Bigr)+\phi\,D_i\Bigl(\prod_{k=n-i+2}^{n}\hat{\lambda}_k-1\Bigr).
+\end{equation}
+After further algebra the variance may be expressed in closed form as
+\begin{equation}\label{eq:var_ui_final}
+\operatorname{Var}[U_i\mid X_n]=\hat{U}_i^2\Biggl(\frac{D_i}{\hat{U}_i}\prod_{k=n-i+2}^{n}\hat{\lambda}^*_k-1\Biggr)
++\phi\,\hat{U}_i\Biggl(\prod_{k=n-i+2}^{n}\hat{\lambda}^*_k-1\Biggr),
+\end{equation}
+where
+\begin{equation}\label{eq:U_hat}
+\hat{U}_i=D_i\prod_{k=n-i+2}^{n}\hat{\lambda}_k,
+\end{equation}
+and
+\begin{equation}\label{eq:lambda_star}
+\hat{\lambda}^*_k=\frac{\sum_{i=1}^{n-k+1}D_{ik}+\phi(a_k+b_k-2)}{\sum_{i=1}^{n-k+1}D_{i,k-1}+\phi(b_k-2)}.
+\end{equation}
+
+For the variance of the predictive distribution of total ultimate claims, one must allow for the covariance between origin periods. Thus,
+\begin{equation}\label{eq:total_var}
+\operatorname{Var}\Biggl[\sum_{i=1}^{n}U_i\mid X_n\Biggr]=\sum_{i=1}^{n}\operatorname{Var}[U_i\mid X_n]
++2\sum_{i>j}\operatorname{Cov}[U_i,U_j\mid X_n].
+\end{equation}
+The covariance can be calculated in closed form as
+\begin{equation}\label{eq:covariance_final}
+\operatorname{Cov}[U_i,U_j\mid X_n]=\hat{U}_i\,D_j\Bigl(\prod_{k=n-j+2}^{n}\hat{\lambda}^*_k-\prod_{k=n-j+2}^{n}\hat{\lambda}_k\Bigr).
+\end{equation}
+Equations (\ref{eq:var_ui_final}), (\ref{eq:total_var}) and (\ref{eq:covariance_final}) provide a closed form expression for the variance of the total claims reserves.
+
+\section{Simulating from the Posterior Predictive Distribution}
+
+The posterior distribution of the payment pattern $\beta$ and expected ultimates $\mu$ (derived in Section~2.2) allows simulation of the full posterior predictive distribution of future payments. Assuming one has estimated the scale parameter $\phi$ (e.g., as in Appendix~3 of \cite{england2006predictive}) 
+and computed the scaled row and column sums $d_i$ and $c_j$, the parameters $\psi_j$, $j=2,\dots,n$, can be simulated from independent
+\[
+\operatorname{Beta}\Bigl(a_j+c_j,\,b_j+\sum_{i=1}^{n-j+1}d_{i,j-1}\Bigr)
+\]
+distributions.
+
+Given these, the payment pattern $\beta_j$, $j=1,\dots,n$, is calculated recursively: start with $\beta_n=\psi_n$, then for $j=n,\dots,2$ set
+\[
+\beta_{j-1}=\psi_{j-1}\left(1-\sum_{k=j}^{n}\beta_k\right),
+\]
+and finally let
+\[
+\beta_1=1-\sum_{k=2}^{n}\beta_k.
+\]
+Then, given the payment pattern, simulate $\mu_i$ from independent
+\[
+\operatorname{Gamma}\Bigl(d_i,\,\sum_{k=1}^{n-i+1}\frac{\beta_k}{\phi}\Bigr)
+\]
+distributions. Finally, to incorporate process error, simulate $x_{ij}$ for $i+j>n+1$ from a $\operatorname{Poi}(\mu_i\beta_j/\phi)$ distribution and set
+\[
+X_{ij}=\phi\,x_{ij}.
+\]
+In practice, one might alternatively simulate $x_{ij}$ from a $\operatorname{Gamma}(\mu_i\beta_j/\phi,1)$ distribution to avoid discreteness.
+
+\section{Results}
+
+\subsection{Non-Informative Priors}
+
+In this section the results of the exact Bayesian method are compared to maximum likelihood and bootstrap approaches 
+using the well known Taylor and Ashe data \cite{taylor1983second}. The data is presented in Table~\ref{tab:triangle}.
+
+
+\begin{table}[htbp]
+\centering
+\caption{Incremental Observed Claims Triangle (Taylor and Ashe Data)}
+\label{tab:triangle}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{rcccccccccc}
+\toprule
+Origin \textbackslash{} Dev & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 \\
+\midrule
+1  & 357848 & 766940 & 610542 & 482940 & 527326 & 574398 & 146342 & 139950 & 227229 & 67948 \\
+2  & 352118 & 884021 & 933894 & 1183289 & 445745 & 320996 & 527804 & 266172 & 425046 & --- \\
+3  & 290507 & 1001799 & 926219 & 1016654 & 750816 & 146923 & 495992 & 280405 & --- & --- \\
+4  & 310608 & 1108250 & 776189 & 1562400 & 272482 & 352053 & 206286 & --- & --- & --- \\
+5  & 443160 & 693190 & 991983 & 769488 & 504851 & 470639 & --- & --- & --- & --- \\
+6  & 396132 & 937085 & 847498 & 805037 & 705960 & --- & --- & --- & --- & --- \\
+7  & 440832 & 847631 & 1131398 & 1063269 & --- & --- & --- & --- & --- & --- \\
+8  & 359480 & 1061648 & 1443370 & --- & --- & --- & --- & --- & --- & --- \\
+9  & 376686 & 986608  & ---    & ---    & ---    & --- & --- & --- & --- & --- \\
+10 & 344014 & ---    & ---    & ---    & ---    & --- & --- & --- & --- & --- \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+    
+
+The scale parameter is estimated by the plug-in estimate
+\begin{equation}\label{eq:phi_hat}
+\hat{\phi}=\frac{1}{n(n+1)/2-2n+1}\sum_{i+j\le n+1}\frac{(m_{ij}-X_{ij})^2}{m_{ij}},
+\end{equation}
+(as in Appendix~3 of \cite{england2006predictive}, where $m_{ij}=\hat{\mu}_i\hat{\beta}_j$ are the fitted chain-ladder estimates). For the data set in Table~\ref{tab:triangle} this gives $\hat{\phi}\approx52601.36$.
+
+
+
+Table~\ref{tab:noninfresults} compares the mean and coefficient of variation (CV) for the Bayesian method (Bayes), maximum likelihood estimation (MLE) and the bootstrap approach.
+
+\begin{table}[htbp]
+\centering
+\caption{Expected Reserve and Coefficient of Variation for Noninformative Priors}
+\label{tab:noninfresults}
+%\resizebox{\linewidth}{!}{%
+\begin{tabular}{rcccccc}
+\toprule
+\multirow{2}{*}{Origin Year} & \multicolumn{3}{c}{Expected Reserve} & \multicolumn{3}{c}{Coefficient of Variation} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7}
+ & Bayes & MLE & Bootstrap & Bayes & MLE & Bootstrap \\
+\midrule
+1  & --       & --       & --       & --      & --      & --      \\
+2  & 94,634   & 94,634   & 96,253   & 117.1\% & 116.3\% & 118.8\% \\
+3  & 469,511  & 469,511  & 474,010  & 46.2\%  & 46.0\%  & 46.3\%  \\
+4  & 709,638  & 709,638  & 715,498  & 36.9\%  & 36.8\%  & 36.9\%  \\
+5  & 984,889  & 984,889  & 991,932  & 30.9\%  & 30.8\%  & 30.9\%  \\
+6  & 1,419,459& 1,419,459& 1,428,995& 26.5\%  & 26.4\%  & 26.5\%  \\
+7  & 2,177,641& 2,177,641& 2,191,110& 22.8\%  & 22.7\%  & 22.8\%  \\
+8  & 3,920,301& 3,920,301& 3,944,591& 20.2\%  & 20.2\%  & 20.2\%  \\
+9  & 4,278,972& 4,278,972& 4,312,701& 24.5\%  & 24.5\%  & 24.5\%  \\
+10 & 4,625,811& 4,625,811& 4,714,573& 43.2\%  & 42.8\%  & 43.2\%  \\
+\midrule
+Total & 18,680,856 & 18,680,856 & 18,869,663 & 15.9\% & 15.8\% & 15.9\% \\
+\bottomrule
+\end{tabular}%
+\end{table}
+
+Table~\ref{tab:pred_results} below shows selected statistics from 10 million simulations of the predictive distribution (results are given for both the bootstrap and Bayesian approaches).
+
+\begin{table}[htbp]
+\centering
+\caption{Statistics of the Total Future Claims Payments Predictive Distribution}
+\label{tab:pred_results}
+\begin{tabular}{lcc}
+\toprule
+Statistic & Bootstrap & Bayes \\
+\midrule
+Mean & 18,869,663 & 18,680,752 \\
+Standard Deviation & 3,006,559 & 2,962,975 \\
+Coefficient of Variation & 15.9\% & 15.9\% \\
+0.5th Percentile & 12,078,059 & 12,341,476 \\
+1st Percentile & 12,644,694 & 12,834,419 \\
+2.5th Percentile & 13,510,832 & 13,588,316 \\
+5th Percentile & 14,280,604 & 14,270,941 \\
+10th Percentile & 15,195,523 & 15,099,718 \\
+20th Percentile & 16,340,261 & 16,168,546 \\
+30th Percentile & 17,196,244 & 16,986,896 \\
+40th Percentile & 17,951,675 & 17,719,455 \\
+50th Percentile & 18,678,705 & 18,434,585 \\
+60th Percentile & 19,428,184 & 19,181,195 \\
+70th Percentile & 20,259,722 & 20,016,225 \\
+80th Percentile & 21,275,072 & 21,045,682 \\
+90th Percentile & 22,775,965 & 22,571,341 \\
+95th Percentile & 24,111,417 & 23,927,482 \\
+97.5th Percentile & 25,349,914 & 25,178,238 \\
+99th Percentile & 26,883,206 & 26,732,941 \\
+99.5th Percentile & 27,980,880 & 27,865,411 \\
+\bottomrule
+\end{tabular}%
+\end{table}
+
+\subsection{Informative Priors}
+
+Suppose there is prior information on the development factors $\lambda_j$ (perhaps from a benchmark pattern), 
+which can be 
+expressed in terms of the beta parameters $a_j$ and $b_j$. Table~\ref{tab:informative} 
+provides an illustrative example of such priors. The resulting expected reserves and coefficients of variation 
+are shown in Table~\ref{tab:informative_results}.
+
+\begin{table}[htbp]
+\centering
+\caption{Example Informative Priors for the Development Factors $\lambda_j$}
+\label{tab:informative}
+\begin{tabular}{cccccc}
+\toprule
+$j$ & $a_j$ & $b_j$ & Prior Mean & Prior Variance \\
+\midrule
+2  & 5.00  & 3.50  & 3.00  & 4.0000 \\
+3  & 2.00  & 5.00  & 1.50  & 0.2500 \\
+4  & 1.60  & $6.3\dot{3}$  & 1.30  & 0.0900 \\
+5  & 1.30  & $9.6\dot{6}$  & 1.15  & 0.0225 \\
+6  & 1.20  & 13.00 & 1.10  & 0.0100 \\
+7  & 1.15  & $16.3\dot{3}$ & 1.075  & 0.005625 \\
+8  & 1.10  & 23.00 & 1.05  & 0.0025 \\
+9  & 1.05  & 43.00 & 1.025  & 0.000625 \\
+10 & 1.02  & 103.00& 1.01  & 0.0001 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Expected Reserve and Coefficient of Variation with Informative Prior}
+\label{tab:informative_results}
+\begin{tabular}{lcc}
+\toprule
+Origin Year & Expected Reserve & Coefficient of Variation \\
+\midrule
+1  & --        & --      \\
+2  & 70,578    & 109.6\% \\
+3  & 392,896   & 46.3\%  \\
+4  & 632,576   & 36.6\%  \\
+5  & 911,833   & 30.7\%  \\
+6  & 1,342,008 & 26.3\%  \\
+7  & 2,089,129 & 22.6\%  \\
+8  & 3,801,012 & 20.1\%  \\
+9  & 4,163,991 & 24.5\%  \\
+10 & 4,498,517 & 43.1\%  \\
+\midrule
+Total & 17,902,540 & 15.44\% \\
+\bottomrule
+\end{tabular}%
+\end{table}
+
+\section{Discussion}
+
+This paper has presented for the first time analytic formula for the prediction error in a Bayesian approach 
+to claims reserving using the over-dispersed (ODP) Poisson model. 
+
+The results show that the Bayesian ODP claims reserving model leads to an analytic formula for prediction error 
+and a proper posterior distribution under both noninformative and informative priors. The mathematical analysis 
+highlights the importance
+of the choice of prior in the Bayesian approach to claims reserving, as well as clarifying an error in the findings of  W\"uthrich \cite{wuthrich2013challenges}.
+
+For a certain choice of noninformative prior the posterior expected future claims exactly reproduce the chain-ladder 
+estimates. This contrasts with the findings of W\"uthrich \cite{wuthrich2013challenges}, who 
+found an improper posterior when using noninformative priors. W\"uthrich did not impose identifiability on the model, meaning that
+the posterior was improper due to the redundancy of the parameters.
+In the present work the model is made identifiable by imposing
+\[
+\sum_{j=1}^{n}\beta_j=1.
+\]
+Thus, while an improper posterior for a redundant parameter is not necessarily a concern 
+(since only the product $\mu_i\beta_j$ matters), enforcing identifiability clarifies the meaning of the parameters and simplifies the inference.
+
+Another interesting observation is that differences in the choice of noninformative prior (e.g. logarithmic versus 
+Haldane-type priors) lead to slight differences in the posterior development factors. 
+An appealing feature of the chosen prior $\pi(\psi_j)\propto\psi_j^{-1}$ is that the posterior mean of $\lambda_j$ exactly reproduces the chain-ladder estimate. A further justification comes from the negative binomial representation of the ODP model 
+(conditional on past cumulative claims) as shown in \cite{verrall2000investigation}:
+\begin{equation}\label{eq:nb}
+x_{ij}\mid d_{i,j-1},\psi_j\sim \operatorname{NB}(d_{i,j-1},\psi_j).
+\end{equation}
+Since the natural parameter is $\log(\psi_j)$, a uniform prior on the natural parameter implies 
+$\pi(\psi_j)\propto\psi_j^{-1}$.
+
+The results also highlight the bias in the mean estimate of the bootstrapping approach compared to the chain ladder estimate, which
+can be eliminated with the proposed choice of non-informative prior.
+
+In this paper, the scale parameter $\phi$ is taken to be a constant across all origin and development periods. As noted in \cite{england2006predictive} 
+when using the ODP model one often allows $\phi$ to vary with development period. 
+The extension of the results presented here to allow for a varying scale parameter is straightforward. Much of the analysis remains unchanged once the scaled data $x_{ij}=X_{ij}/\phi_j$, 
+$d_{ij}=\sum_{k=1}^j x_{i,k}$, $d_i=d_{i,n-i+1}$ and $c_j=\sum_{i=1}^{n-j+1}{x_ij}$ are defined
+in terms of the varying $\phi_j$. Interestingly in this case, the expected reserves do not exactly match the chain-ladder 
+estimates even with the noninformative 
+prior $\pi(\psi_j)\propto\psi_j^{-1}$. With constant scale parameters, the scale parameter cancels from the numerator and denominator of (\ref{eq:lambda_hat}), leading to the chain-ladder estimates. However, with 
+varying scale parameters this cancellation does not occur, and the 
+posterior expectation of the development factors becomes
+\begin{equation}
+\hat{\lambda}_j=\frac{\sum_{i=1}^{n-j+1}d_{i,j}}{\sum_{i=1}^{n-j+1}d_{i,j-1}}.
+\end{equation}
+That is, the posterior expected development factors are expressed in terms of the cumulative scaled claims $d_{ij}$ rather than the original 
+cumulative claims $D_{ij}$.
+
+Finally, while one could consider alternative noninformative priors (such as Jeffreys prior), corresponding to different choices of $a_j$ and $b_j$, 
+differences in the resulting expected reserves tend to be small 
+in practice because $\phi$ is usually small relative to cumulative claims.
+
+While the ODP model is based on aggregate triangle data and much research has recently been conducted into individual claims
+reserving risk models, triangle based approaches to reserve risk such as the ODP model are still widely used by 
+practicing actuaries. The results presented in this paper provide a new insight into the ODP model and its Bayesian
+properties.
+
+
+\section*{Acknowledgements}
+
+I thank Jos Gibbons and Tom Day, Peter England and Filippo Siegenthaler for their helpful comments on this paper.
+
+\begin{thebibliography}{99}
+\bibitem{renshaw1998stochastic}
+Renshaw, A.~E. and Verrall, R.~J. (1998).
+\newblock A stochastic model underlying the chain-ladder technique.
+\newblock {\em British Actuarial Journal}, 4(04):903--923.
+
+\bibitem{mack1993distribution}
+Mack, T. (1993).
+\newblock Distribution-free calculation of the standard error of chain ladder reserve estimates.
+\newblock {\em Astin Bulletin}, 23(02):213--225.
+
+\bibitem{roc2007best}
+ROC/GIRO Working Party (2007).
+\newblock Best estimates and reserving uncertainty.
+
+\bibitem{england2012bayesian}
+England, P.~D., Verrall, R.~J., and W\"uthrich, M.~V. (2012).
+\newblock Bayesian over-dispersed Poisson model and the Bornhuetter \& Ferguson claims reserving method.
+\newblock {\em Annals of Actuarial Science}, 6(02):258--283.
+
+\bibitem{england2006predictive}
+England, P.~D. and Verrall, R.~J. (2006).
+\newblock Predictive distributions of outstanding liabilities in general insurance.
+\newblock {\em Annals of Actuarial Science}, 1(02):221--270.
+
+\bibitem{taylor1983second}
+Taylor, G.~C. and Ashe, F.~R. (1983).
+\newblock Second moments of estimates of outstanding claims.
+\newblock {\em Journal of Econometrics}, 23(1):37--61.
+
+\bibitem{wuthrich2007using}
+W\"uthrich, M.~V. (2007).
+\newblock Using a Bayesian approach for claims reserving.
+\newblock {\em Variance}, 1(2):292--301.
+
+\bibitem{wuthrich2013challenges}
+W\"uthrich, M.~V. (2013).
+\newblock Challenges with non-informative gamma priors in the Bayesian over-dispersed Poisson reserving model.
+\newblock {\em Insurance: Mathematics and Economics}, 52(2):352--358.
+
+\bibitem{clark}
+Clark, D.~R.
+\newblock Introduction to Bayesian loss development.
+
+\bibitem{chang2010structural}
+Chang, W.-Y., Gupta, R.~D., and Richards, D.~St.~P. (2010).
+\newblock Structural properties of the generalized Dirichlet distributions.
+\newblock {\em Contemporary Mathematics}, 516:109--124.
+
+\bibitem{yang1996catalog}
+Yang, R. and Berger, J.~O. (1996).
+\newblock A catalog of noninformative priors.
+\newblock Institute of Statistics and Decision Sciences, Duke University.
+
+\bibitem{verrall2000investigation}
+Verrall, R.~J. (2000).
+\newblock An investigation into stochastic claims reserving models and the chain-ladder technique.
+\newblock {\em Insurance: Mathematics and Economics}, 26(1):91--99.
+\end{thebibliography}
+
+\end{document}
