@@ -163,7 +163,7 @@ class OriginPriorODP:
     def _sample_xi(self) -> ProteusVariable:
         """Posterior xi_i | X  (Theorem 3, eq. 18 / 62)."""
         xi = ProteusVariable("op", {})
-        xi["1"] = StochasticScalar([1.0])
+        xi["1"] = 1.0
 
         s, d, e = self.data.s, self.data.d, self.data.e
         cumulative_e, xi0 = self.data.cumulative_e, self.data.xi0
@@ -185,7 +185,7 @@ class OriginPriorODP:
         """Recover mu_i from xi  (eq. 14)."""
         assert self.xi is not None
         mu = ProteusVariable("op", {})
-        mu["1"] = StochasticScalar([1.0])
+        mu["1"] = 1.0
 
         cumulative_mu = mu["1"]
         for i in range(2, self.n + 1):
@@ -214,14 +214,18 @@ class OriginPriorODP:
         reserve = ProteusVariable("op", {})
 
         for i in range(1, self.n + 1):
-            row_total = StochasticScalar([0.0])
+            row_total = None
             for j in range(self.n - i + 2, self.n + 1):
                 lam = self.mu[str(i)] * self.beta[str(j)] / phi
                 # Continuous process analogue: the Gamma draw matches the
                 # conditional mean and variance of phi * Poisson(lam), but
                 # not its lattice-valued distribution.
-                row_total = row_total + phi * distributions.Gamma(lam, 1).generate()
-            reserve[str(i)] = row_total
+                payment = phi * distributions.Gamma(lam, 1).generate()
+                row_total = payment if row_total is None else row_total + payment
+            reserve[str(i)] = (
+                row_total if row_total is not None
+                else StochasticScalar(np.zeros(pal.config.n_sims))
+            )
 
         self.reserve_by_origin = reserve
         self.total_reserve = reserve.sum()
