@@ -5,21 +5,19 @@ Implements the model from:
    Norman, J.P. (2025). "The Predictive Distribution of the Over-dispersed Poisson
    Claims Reserving Model"
 
-This uses an exact analytical solution of the Bayesian predictive distribution
-for claims reserves under the ODP model, implemented using the
-Proteus Actuarial Library.
+This implements the Bayesian reserve simulation using the Proteus Actuarial
+Library. Future payments are simulated using Gamma rather than Poisson,
+as the Gamma distribution is continuous.
 
 """
+
+from pathlib import Path
 
 import numpy as np
 
 import pal
-import pal.maths as pnp
+from pal import ProteusVariable, StochasticScalar
 from pal.distributions import Beta, Gamma
-from pal.variables import ProteusVariable, StochasticScalar
-
-pal.config.n_sims = 100_000
-
 
 class ODPModel:
     """Bayesian ODP claims reserving model."""
@@ -87,7 +85,7 @@ class ODPModel:
         d_ij = cumtri / phi
         sum_dij = [np.sum(d_ij[: n - j, j - 1]) for j in range(1, n)]
 
-        psi = ProteusVariable("dp", {"1": StochasticScalar([1])})
+        psi = ProteusVariable("dp", {"1": StochasticScalar([1.0])})
         for j in range(1, n):
             a_j, b_j = 0.0, 1.0
             psi[str(j + 1)] = Beta(a_j + c_j[j], b_j + sum_dij[j - 1]).generate()
@@ -97,7 +95,14 @@ class ODPModel:
         for j in range(n - 2, -1, -1):
             betas[str(j + 1)] = psi[str(j + 1)] * (1 - future_sum_beta)
             future_sum_beta = future_sum_beta + betas[str(j + 1)]
-        cumulative_payment_pattern = pnp.cumsum([betas[str(j + 1)] for j in range(n)])
+        # Build the cumulative pattern from PAL variables, preserving their
+        # scenario coupling. A NumPy cumsum of .values would retain the
+        # numerical paths but lose their tracked stochastic ancestry.
+        cumulative_payment_pattern = []
+        running_pattern = StochasticScalar([0.0])
+        for j in range(n):
+            running_pattern = running_pattern + betas[str(j + 1)]
+            cumulative_payment_pattern.append(running_pattern)
 
         self.mu = ProteusVariable(
             dim_name="op",
@@ -120,6 +125,7 @@ class ODPModel:
         for op in self.origin_periods:
             total_by_origin[op] = StochasticScalar([0.0])
             for dp in self.future_dev_periods[op]:
+                # Use Gamma rather than Poisson for continuous simulations.
                 x_ij = Gamma(self.mu[op] * self.betas[dp] / phi, 1).generate()
                 total_by_origin[op] = total_by_origin[op] + phi * x_ij
 
@@ -162,8 +168,11 @@ def observed_mask(tri: np.ndarray) -> np.ndarray:
 if __name__ == "__main__":
     import pandas as pd
 
+    pal.set_default_n_sims(100_000)
+    pal.set_random_seed(42)
     triangle = pd.read_csv(
-        "odp_paper/taylor_ashe_claims_triangle.csv", index_col=0
+        Path(__file__).resolve().with_name("taylor_ashe_claims_triangle.csv"),
+        index_col=0,
     ).to_numpy()
 
     model = ODPModel(triangle)
