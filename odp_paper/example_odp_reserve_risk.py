@@ -86,7 +86,7 @@ class ODPModel:
         d_ij = cumtri / phi
         sum_dij = [np.sum(d_ij[: n - j, j - 1]) for j in range(1, n)]
 
-        psi = ProteusVariable("dp", {"1": 1.0})
+        psi = ProteusVariable("dp", {"1": StochasticScalar([1.0])})
         for j in range(1, n):
             a_j, b_j = 0.0, 1.0
             psi[str(j + 1)] = Beta(a_j + c_j[j], b_j + sum_dij[j - 1]).generate()
@@ -100,7 +100,7 @@ class ODPModel:
         # scenario coupling. A NumPy cumsum of .values would retain the
         # numerical paths but lose their tracked stochastic ancestry.
         cumulative_payment_pattern = []
-        running_pattern = 0.0
+        running_pattern = StochasticScalar([0.0])
         for j in range(n):
             running_pattern = running_pattern + betas[str(j + 1)]
             cumulative_payment_pattern.append(running_pattern)
@@ -124,18 +124,12 @@ class ODPModel:
         total_by_origin: ProteusVariable[StochasticScalar] = ProteusVariable("op", {})
 
         for op in self.origin_periods:
-            row_total = None
+            total_by_origin[op] = StochasticScalar([0.0])
             for dp in self.future_dev_periods[op]:
                 # Continuous process analogue with the conditional mean and
                 # variance of the scaled Poisson ODP payment.
                 x_ij = Gamma(self.mu[op] * self.betas[dp] / phi, 1).generate()
-                payment = phi * x_ij
-                row_total = payment if row_total is None else row_total + payment
-            # The fully developed first origin has no future cells.
-            total_by_origin[op] = (
-                row_total if row_total is not None
-                else StochasticScalar(np.zeros(pal.config.n_sims))
-            )
+                total_by_origin[op] = total_by_origin[op] + phi * x_ij
 
         total = total_by_origin.sum()
         self.total_future_claims = total
