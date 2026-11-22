@@ -5,10 +5,9 @@ Implements the model from:
    Norman, J.P. (2025). "The Predictive Distribution of the Over-dispersed Poisson
    Claims Reserving Model"
 
-This implements a simulation of the Bayesian reserve distribution using the
-Proteus Actuarial Library. Future process payments use a continuous Gamma
-analogue of scaled Poisson ODP payments; this matches conditional first two
-moments but not the exact conditional distribution.
+This implements the Bayesian reserve simulation using the Proteus Actuarial
+Library. Future payments are simulated using Gamma rather than Poisson,
+as the Gamma distribution is continuous.
 
 """
 
@@ -126,8 +125,7 @@ class ODPModel:
         for op in self.origin_periods:
             total_by_origin[op] = StochasticScalar([0.0])
             for dp in self.future_dev_periods[op]:
-                # Continuous process analogue with the conditional mean and
-                # variance of the scaled Poisson ODP payment.
+                # Use Gamma rather than Poisson for continuous simulations.
                 x_ij = Gamma(self.mu[op] * self.betas[dp] / phi, 1).generate()
                 total_by_origin[op] = total_by_origin[op] + phi * x_ij
 
