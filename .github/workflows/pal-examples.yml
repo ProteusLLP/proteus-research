@@ -45,3 +45,6 @@ jobs:
         if: matrix.python-version == '3.13'
         run: |
           python -m odp_paper_origin.model.compare_sampling --sims 131072 --replicate-sims 8192 --replicates 16
+      - name: Profile ODP random-number generation and simulation transforms
+        if: matrix.python-version == '3.13'
+        run: python -m odp_paper_origin.model.profile_sampling --sims 65536 --lines 25
