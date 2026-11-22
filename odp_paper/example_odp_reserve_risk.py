@@ -17,7 +17,6 @@ from pathlib import Path
 import numpy as np
 
 import pal
-import pal.maths as pnp
 from pal import ProteusVariable, StochasticScalar
 from pal.distributions import Beta, Gamma
 
@@ -97,7 +96,14 @@ class ODPModel:
         for j in range(n - 2, -1, -1):
             betas[str(j + 1)] = psi[str(j + 1)] * (1 - future_sum_beta)
             future_sum_beta = future_sum_beta + betas[str(j + 1)]
-        cumulative_payment_pattern = pnp.cumsum([betas[str(j + 1)] for j in range(n)])
+        # Build the cumulative pattern from PAL variables, preserving their
+        # scenario coupling. A NumPy cumsum of .values would retain the
+        # numerical paths but lose their tracked stochastic ancestry.
+        cumulative_payment_pattern = []
+        running_pattern = StochasticScalar([0.0])
+        for j in range(n):
+            running_pattern = running_pattern + betas[str(j + 1)]
+            cumulative_payment_pattern.append(running_pattern)
 
         self.mu = ProteusVariable(
             dim_name="op",
