@@ -41,10 +41,19 @@ jobs:
       # CPU runners, while PAL owns the dedicated self-hosted GPU runner.
       - name: Run PAL research models with MC and RQMC
         run: python -m pytest -q tests/test_pal_research_examples.py
-      - name: Compare ODP results with previous one-million-path run
+      - name: Baseline ODP timing with PAL main
+        if: matrix.python-version == '3.13'
+        run: python -m odp_paper_origin.model.compare_sampling --sims 131072 --replicates 0
+
+      - name: Install optimized CPU RQMC candidate
+        if: matrix.python-version == '3.13'
+        run: python -m pip install --no-deps --force-reinstall "git+https://github.com/ProteusLLP/proteusllp-actuarial-library.git@perf/rqmc-cpu-inverse-transforms"
+
+      - name: Compare optimized ODP results and sampling variability
         if: matrix.python-version == '3.13'
         run: |
           python -m odp_paper_origin.model.compare_sampling --sims 131072 --replicate-sims 8192 --replicates 16
-      - name: Profile ODP random-number generation and simulation transforms
+
+      - name: Profile optimized ODP random-number generation and transforms
         if: matrix.python-version == '3.13'
         run: python -m odp_paper_origin.model.profile_sampling --sims 65536 --lines 25
