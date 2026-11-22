@@ -44,4 +44,4 @@ jobs:
       - name: Compare ODP results with previous one-million-path run
         if: matrix.python-version == '3.13'
         run: |
-          python -m odp_paper_origin.model.compare_sampling --sims 131072 --replicate-sims 8192 --replicates 4
+          python -m odp_paper_origin.model.compare_sampling --sims 131072 --replicate-sims 8192 --replicates 16
