@@ -1,4 +1,4 @@
-name: PAL research examples (MC, RQMC, CPU and GPU)
+name: PAL research examples (MC and RQMC)
 
 on:
   pull_request:
@@ -21,45 +21,23 @@ permissions:
 
 jobs:
   research-examples:
-    # The GPU runner belongs to Proteus; never run untrusted fork code on it.
-    if: >-
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - python-version: "3.11"
-            backend: cpu
-          - python-version: "3.13"
-            backend: cpu
-          - python-version: "3.13"
-            backend: gpu
-    runs-on: ${{ matrix.backend == 'gpu' && 'proteus-gpu' || 'ubuntu-latest' }}
-    env:
-      PAL_USE_GPU: ${{ matrix.backend == 'gpu' && '1' || '0' }}
+        python-version: ["3.11", "3.13"]
     steps:
       - uses: actions/checkout@v7
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install PAL singleton-constant release candidate
-        run: python -m pip install "git+https://github.com/ProteusLLP/proteusllp-actuarial-library.git@feature/singleton-stochastic-constants"
-      - name: Install GPU backend
-        if: matrix.backend == 'gpu'
-        run: python -m pip install "cupy-cuda12x[ctk]"
-      - name: Check CUDA backend
-        if: matrix.backend == 'gpu'
-        run: |
-          nvidia-smi
-          python - <<'PY'
-          import cupy
-          from pal._maths import xp
-          assert xp is cupy, "PAL must perform stochastic calculations with CuPy"
-          assert cupy.cuda.runtime.getDeviceCount() > 0
-          PY
+      - name: Install current PAL main
+        run: python -m pip install "git+https://github.com/ProteusLLP/proteusllp-actuarial-library.git@main"
       - name: Install test requirements
         run: python -m pip install pytest
+      # The same ODP tests are exercised on a real CuPy runner by PAL's
+      # .github/workflows/gpu-tests.yml. The research repository uses hosted
+      # CPU runners, while PAL owns the dedicated self-hosted GPU runner.
       - name: Run PAL research models with MC and RQMC
         run: python -m pytest -q tests/test_pal_research_examples.py
