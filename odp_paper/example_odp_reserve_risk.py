@@ -5,21 +5,21 @@ Implements the model from:
    Norman, J.P. (2025). "The Predictive Distribution of the Over-dispersed Poisson
    Claims Reserving Model"
 
-This uses an exact analytical solution of the Bayesian predictive distribution
-for claims reserves under the ODP model, implemented using the
-Proteus Actuarial Library.
+This implements a simulation of the Bayesian reserve distribution using the
+Proteus Actuarial Library. Future process payments use a continuous Gamma
+analogue of scaled Poisson ODP payments; this matches conditional first two
+moments but not the exact conditional distribution.
 
 """
+
+from pathlib import Path
 
 import numpy as np
 
 import pal
 import pal.maths as pnp
+from pal import ProteusVariable, StochasticScalar
 from pal.distributions import Beta, Gamma
-from pal.variables import ProteusVariable, StochasticScalar
-
-pal.config.n_sims = 100_000
-
 
 class ODPModel:
     """Bayesian ODP claims reserving model."""
@@ -120,6 +120,8 @@ class ODPModel:
         for op in self.origin_periods:
             total_by_origin[op] = StochasticScalar([0.0])
             for dp in self.future_dev_periods[op]:
+                # Continuous process analogue with the conditional mean and
+                # variance of the scaled Poisson ODP payment.
                 x_ij = Gamma(self.mu[op] * self.betas[dp] / phi, 1).generate()
                 total_by_origin[op] = total_by_origin[op] + phi * x_ij
 
@@ -162,8 +164,11 @@ def observed_mask(tri: np.ndarray) -> np.ndarray:
 if __name__ == "__main__":
     import pandas as pd
 
+    pal.set_default_n_sims(100_000)
+    pal.set_random_seed(42)
     triangle = pd.read_csv(
-        "odp_paper/taylor_ashe_claims_triangle.csv", index_col=0
+        Path(__file__).resolve().with_name("taylor_ashe_claims_triangle.csv"),
+        index_col=0,
     ).to_numpy()
 
     model = ODPModel(triangle)
