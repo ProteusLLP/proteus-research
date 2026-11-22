@@ -41,3 +41,7 @@ jobs:
       # CPU runners, while PAL owns the dedicated self-hosted GPU runner.
       - name: Run PAL research models with MC and RQMC
         run: python -m pytest -q tests/test_pal_research_examples.py
+      - name: Compare ODP results with previous one-million-path run
+        if: matrix.python-version == '3.13'
+        run: |
+          python -m odp_paper_origin.model.compare_sampling --sims 131072 --replicate-sims 8192 --replicates 4
