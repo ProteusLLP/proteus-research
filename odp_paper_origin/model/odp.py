@@ -10,7 +10,10 @@ Implements the posterior predictive simulation algorithm of Section 3.2:
     1. Sample xi_i | X  ~  Beta(a_i + s_i,  b_i + d_i)       [Theorem 3, eq. 18]
     2. Recover mu_i from xi via the inverse map                [eq. 14]
     3. Sample beta_j | X, mu  ~  Gamma(c_j, (1/phi) sum mu_r) [eq. 22]
-    4. Sample X^fut_ij | mu, beta  ~  phi * Poi(mu_i beta_j / phi)
+    4. Paper: X^fut_ij | mu, beta ~ phi * Poi(mu_i beta_j / phi).
+       This script instead uses phi * Gamma(mu_i beta_j / phi, 1) as a
+       continuous process approximation with the same conditional mean and
+       variance; it is not the exact Poisson predictive distribution.
 
 Three methods are obtained as special cases of the exposure-centred
 one-parameter family (Section 4.1, eq. 59):
@@ -45,8 +48,8 @@ SEED = 42
 PHI = 21_610.838_822_113
 TAU_EB = 346.0
 
-DATA_DIR = Path("odp_paper_origin/data")
-OUTPUT_DIR = Path("odp_paper_origin/model")
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+OUTPUT_DIR = Path(__file__).resolve().parent
 
 
 # ---------------------------------------------------------------------------
@@ -214,9 +217,10 @@ class OriginPriorODP:
             row_total = StochasticScalar([0.0])
             for j in range(self.n - i + 2, self.n + 1):
                 lam = self.mu[str(i)] * self.beta[str(j)] / phi
-                row_total = (
-                    row_total + phi * distributions.Gamma(lam, 1).generate()
-                )  # use Gamma instead of Poisson for forecasting to avoid discrete jumps in the predictive distribution
+                # Continuous process analogue: the Gamma draw matches the
+                # conditional mean and variance of phi * Poisson(lam), but
+                # not its lattice-valued distribution.
+                row_total = row_total + phi * distributions.Gamma(lam, 1).generate()
             reserve[str(i)] = row_total
 
         self.reserve_by_origin = reserve
