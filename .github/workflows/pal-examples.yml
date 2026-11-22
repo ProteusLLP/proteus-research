@@ -1,0 +1,40 @@
+name: PAL research examples
+
+on:
+  pull_request:
+    paths:
+      - "odp_paper/**"
+      - "odp_paper_origin/**"
+      - "tests/test_pal_research_examples.py"
+      - ".github/workflows/pal-examples.yml"
+  push:
+    branches: [main]
+    paths:
+      - "odp_paper/**"
+      - "odp_paper_origin/**"
+      - "tests/test_pal_research_examples.py"
+      - ".github/workflows/pal-examples.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  research-examples:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install PAL from its main branch
+        run: python -m pip install "git+https://github.com/ProteusLLP/proteusllp-actuarial-library.git@main"
+      - name: Install test requirements
+        run: python -m pip install pytest
+      - name: Run PAL research smoke tests
+        run: python -m pytest -q tests/test_pal_research_examples.py
